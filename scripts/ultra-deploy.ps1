@@ -11,11 +11,17 @@ function Write-Log {
     Write-Host "[Ultra-Deploy] $Message"
 }
 
-# 1. Ensure git is clean
+
+# 1. Detect and commit all changes since last release
 $gitStatus = git status --porcelain
 if ($gitStatus) {
-    Write-Log "Uncommitted changes detected. Please commit or stash before deploying."
-    exit 1
+    Write-Log "Uncommitted changes detected. Staging and committing all changes..."
+    git add -A
+    $autoCommitMsg = "Auto-commit: changes before ultra-deploy v$((Get-Content package.json | ConvertFrom-Json).version)"
+    git commit -m $autoCommitMsg
+    Write-Log "Committed all changes."
+} else {
+    Write-Log "No uncommitted changes detected."
 }
 
 # 2. Bump version in package.json

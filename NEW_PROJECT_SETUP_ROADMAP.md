@@ -37,8 +37,8 @@
 [x] Create ultra-deploy script (PowerShell or Bash)
 - [x] Script bumps version, commits, pushes, and creates GitHub release
 - [x] Add changelog and version tracking
-- [ ] Document ultra-deploy usage in README
-- [ ] System must automatically detect changes since last release, commit them, and update documentation
+- [x] Document ultra-deploy usage in README
+- [x] System must automatically detect changes since last release, commit them, and update documentation
 
 
 ## PHASE 3: In-App Update System
