@@ -55,7 +55,7 @@
 - [x] Modularize Electron main/renderer code (folders, components, blueprints)
  - [x] Document modular design in README
 ## PHASE 5: Release & Download First Version
-- [ ] Make a release of the current state after setup is complete (version bump, commit, changelog, GitHub release)
+- [x] Make a release of the current state after setup is complete (version bump, commit, changelog, GitHub release)
 - [ ] Download and install the first version of the app (explicit user step)
 - [ ] Verify installation and initial run before moving to feature development
 
