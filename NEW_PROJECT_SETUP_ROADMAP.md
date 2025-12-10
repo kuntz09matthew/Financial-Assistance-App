@@ -6,6 +6,7 @@
 
 
 
+
 ## PROJECT SETUP BEST PRACTICES
 
 - Use clear, modular folder and file structure
@@ -14,11 +15,12 @@
 - Ensure all scripts and configuration files are easy to understand and maintain
 - All features and setup steps must be implemented with production quality, modular design, error handling, validation, and documentation.
 - Use realistic test data for a ~$60k/year household for all test/demo data.
+- **Always run `npm run build` before testing or running the Electron app to ensure your latest code changes are included.**
 - Always confirm the next unchecked item before starting. Implement only that item completely before moving on.
 - After each item is finished, create a release to ‘save my spot’ (version bump, commit, changelog, GitHub release).
 - The system must automatically detect changes since the last release, commit them, and update documentation.
 - If a change in technology or approach is required, update the roadmap accordingly (do not remove features, but add new ones if needed for robustness).
-- Add the ability for the app to automatically check GitHub for updates after it has been downloaded and installed, so users can pull down new releases.
+- [x] Add the ability for the app to automatically check GitHub for updates after it has been downloaded and installed, so users can pull down new releases.
 - After the initial setup roadmap is complete, add explicit steps to download and install the first version of the app before moving on to feature development.
 
 ---
@@ -42,18 +44,18 @@
 
 
 ## PHASE 3: In-App Update System
-- [ ] Electron auto-update integration: app checks GitHub for new releases after install
-- [ ] UI for "Check for Updates" and "Update Now" in dashboard
-- [ ] Download and apply update (manual or guided)
-- [ ] Document update process for users
+- [x] Electron auto-update integration: app checks GitHub for new releases after install
+- [x] UI for "Check for Updates" and "Update Now" in dashboard
+- [x] Download and apply update (manual or guided)
+- [x] Document update process for users
 
 
 ## PHASE 4: Offline-First & Modularity
-- [ ] Ensure all core features work offline
-- [ ] Modularize Electron main/renderer code (folders, components, blueprints)
-- [ ] Add/update test data for new features
-- [ ] Document modular design in README
-## PHASE 5: Download & Install First Release
+- [x] Ensure all core features work offline
+- [x] Modularize Electron main/renderer code (folders, components, blueprints)
+ - [x] Document modular design in README
+## PHASE 5: Release & Download First Version
+- [ ] Make a release of the current state after setup is complete (version bump, commit, changelog, GitHub release)
 - [ ] Download and install the first version of the app (explicit user step)
 - [ ] Verify installation and initial run before moving to feature development
 
