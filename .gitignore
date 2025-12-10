@@ -4,3 +4,20 @@ dist/
 *.log
 .DS_Store
 *.tmp
+build/
+.tsbuildinfo
+out/
+coverage/
+*.sqlite
+*.db
+*.local
+*.cache
+*.bak
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# OS
+Thumbs.db
+Desktop.ini
+# VSCode
+.vscode/
