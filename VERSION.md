@@ -1,5 +1,6 @@
 # Version
 
-Current version: 0.1.0
+Current version: 1.0.2
 
-- Initial setup and repository connection
+- Released 2025-12-10 by ultra-deploy script
+
