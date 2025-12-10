@@ -25,3 +25,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.6] - 2025-12-10
 - Automated ultra-deploy release
 
+
+## [1.0.7] - 2025-12-10
+- No changes found.
+
