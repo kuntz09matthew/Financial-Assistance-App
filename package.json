@@ -1,9 +1,8 @@
 {
   "name": "financial-assistance-app",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "This repository contains the source code for the Financial Assistance App, an Electron desktop application designed to help families manage financial assistance and budgeting.",
   "main": "main/index.js",
-  
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
