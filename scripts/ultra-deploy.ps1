@@ -36,7 +36,26 @@ Write-Log "New version: $newVersion"
 
 # 4. Update CHANGELOG.md
 $date = Get-Date -Format "yyyy-MM-dd"
-$changelogEntry = "`n## [$newVersion] - $date`n- Automated ultra-deploy release`n"
+
+# Get last tag (previous release)
+$lastTag = git describe --tags --abbrev=0 2>$null
+if (-not $lastTag) {
+    $lastTag = ""
+}
+
+# Get commit messages since last tag
+if ($lastTag -ne "") {
+    $commitMessages = git log $lastTag..HEAD --pretty=format:"- %s"
+} else {
+    $commitMessages = git log --pretty=format:"- %s"
+}
+
+if (-not $commitMessages) {
+    $commitMessages = "- No changes found."
+}
+
+# Prepare changelog entry
+$changelogEntry = "`n## [$newVersion] - $date`n$commitMessages`n"
 Add-Content -Path CHANGELOG.md -Value $changelogEntry
 
 # 5. Update VERSION.md
@@ -58,9 +77,10 @@ Write-Log "Pushing to GitHub..."
 git push origin main --tags
 
 # 8. Create GitHub release (requires gh CLI)
+
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     Write-Log "Creating GitHub release..."
-    gh release create v$newVersion --title "Release v$newVersion" --notes "Automated ultra-deploy release."
+    gh release create v$newVersion --title "Release v$newVersion" --notes "$commitMessages"
 } else {
     Write-Log "GitHub CLI (gh) not found. Skipping GitHub release creation."
 }
