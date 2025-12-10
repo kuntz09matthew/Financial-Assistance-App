@@ -27,10 +27,15 @@ $package = Get-Content package.json | ConvertFrom-Json
 $newVersion = $package.version
 Write-Log "New version: $newVersion"
 
+
 # 4. Update CHANGELOG.md
 $date = Get-Date -Format "yyyy-MM-dd"
-$changelogEntry = "## [$newVersion] - $date`n- Automated ultra-deploy release`n"
+$changelogEntry = "`n## [$newVersion] - $date`n- Automated ultra-deploy release`n"
 Add-Content -Path CHANGELOG.md -Value $changelogEntry
+
+# 5. Update VERSION.md
+$versionContent = "# Version`n`nCurrent version: $newVersion`n`n- Released $date by ultra-deploy script`n"
+Set-Content -Path VERSION.md -Value $versionContent
 
 # 5. Commit changes
 Write-Log "Committing changes..."
