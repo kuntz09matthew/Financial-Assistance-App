@@ -3,14 +3,13 @@
   "version": "1.0.7",
   "description": "This repository contains the source code for the Financial Assistance App, an Electron desktop application designed to help families manage financial assistance and budgeting.",
   "main": "main/index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
     "build": "webpack --config ./renderer/webpack.config.js",
-    "test": "echo 'No tests yet'"
+    "test": "echo 'No tests yet'",
+    "dist": "electron-builder"
   },
   "repository": {
     "type": "git",
@@ -23,11 +22,34 @@
     "url": "https://github.com/kuntz09matthew/Financial-Assistance-App/issues"
   },
   "homepage": "https://github.com/kuntz09matthew/Financial-Assistance-App#readme",
+  "build": {
+    "appId": "com.kuntz09matthew.financialassistanceapp",
+    "productName": "Financial Assistance App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**/*",
+      "renderer/**/*",
+      "components/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "devDependencies": {
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "babel-loader": "^10.0.0",
     "electron": "^39.2.6",
+    "electron-builder": "^26.0.12",
     "html-webpack-plugin": "^5.6.5",
     "webpack": "^5.103.0",
     "webpack-cli": "^6.0.1"

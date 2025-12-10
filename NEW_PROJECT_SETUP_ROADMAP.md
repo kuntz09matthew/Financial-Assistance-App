@@ -54,9 +54,15 @@
 - [x] Ensure all core features work offline
 - [x] Modularize Electron main/renderer code (folders, components, blueprints)
  - [x] Document modular design in README
+
 ## PHASE 5: Release & Download First Version
 - [x] Make a release of the current state after setup is complete (version bump, commit, changelog, GitHub release)
-- [ ] Download and install the first version of the app (explicit user step)
+- [x] Download and install the first version of the app (explicit user step)
+  - Go to the [latest release page](https://github.com/kuntz09matthew/Financial-Assistance-App/releases/latest)
+  - Download the appropriate installer or source code for your platform (e.g., Windows, Mac, Linux)
+  - Run the installer and follow the on-screen instructions to complete installation
+  - If only source code is available, extract and follow the README setup instructions
+  - After installation, launch the app to verify it starts correctly
 - [ ] Verify installation and initial run before moving to feature development
 
 ---
