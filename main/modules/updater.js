@@ -3,10 +3,10 @@ const { autoUpdater, dialog } = require('electron-updater');
 const { dialog: electronDialog } = require('electron');
 const path = require('path');
 
-// Configure autoUpdater to use the generic provider and correct URL
+// Configure autoUpdater to use the generic provider and always check the latest release
 const updateConfig = {
   provider: 'generic',
-  url: 'https://github.com/kuntz09matthew/Financial-Assistance-App/releases/download/v1.0.17/'
+  url: 'https://github.com/kuntz09matthew/Financial-Assistance-App/releases/latest/download/'
 };
 autoUpdater.setFeedURL(updateConfig);
 
