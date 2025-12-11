@@ -45,12 +45,6 @@ const App = () => {
   // Month-to-date spending state
   const [monthToDateSpending, setMonthToDateSpending] = useState(null);
 
-  // --- UPDATE TEST BANNER ---
-  const updateBanner = (
-    <div style={{ background: '#ffe066', color: '#333', padding: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1em' }}>
-      v1.0.25 Update Test: If you see this banner, the update system works!
-    </div>
-  );
 
   // Fetch month-to-date spending from backend
   useEffect(() => {
@@ -199,7 +193,6 @@ const App = () => {
           {isDarkMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
         </button>
       </div>
-      {updateBanner}
       {isOffline && (
         <div style={{ background: theme.warning, color: theme.error, padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold', boxShadow: `0 2px 8px ${theme.border}` }}>
           You are currently offline. Some features may be unavailable.
