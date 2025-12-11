@@ -11,7 +11,8 @@ This repository contains the source code for the Financial Assistance App, an El
 1. Clone the repository
 2. Install dependencies
 3. **Always run `npm run build` before testing or running the app to ensure your latest code changes are included.**
-4. Run the app
+4. The SQLite database file (`assets/accounts.db`) is included in builds and deployments. All test data for new features must be added to this database (not to `accounts.json`).
+5. Run the app
 
 ## Auto-Deploy
 

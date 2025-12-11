@@ -12,6 +12,7 @@ function createMainWindow() {
         contextIsolation: true,
       },
     });
+    win.maximize();
     win.loadFile('renderer/dist/index.html');
     win.webContents.on('did-finish-load', () => {
       win.webContents.send('main-process-message', 'Main process loaded');

@@ -63,7 +63,7 @@
   - Run the installer and follow the on-screen instructions to complete installation
   - If only source code is available, extract and follow the README setup instructions
   - After installation, launch the app to verify it starts correctly
-- [ ] Verify installation and initial run before moving to feature development
+- [x] Verify installation and initial run before moving to feature development
 
 ---
 
