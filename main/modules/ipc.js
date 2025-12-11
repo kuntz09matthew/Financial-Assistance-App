@@ -6,9 +6,20 @@ function setupIPC() {
   ipcMain.handle('get-month-to-date-spending', async () => {
     try {
       const path = require('path');
+      const fs = require('fs');
+      const os = require('os');
       const Database = require('better-sqlite3');
-      const dbPath = path.join(__dirname, '../../assets/data.db');
-      const db = new Database(dbPath, { readonly: true });
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
       // Get the first and last day of the current month
       const now = new Date();
       const year = now.getFullYear();
@@ -25,11 +36,22 @@ function setupIPC() {
     }
   });
   const path = require('path');
+  const fs = require('fs');
+  const os = require('os');
   const Database = require('better-sqlite3');
+  const appName = 'Financial Assistance App';
+  const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+  const userDbPath = path.join(userDataDir, 'data.db');
+  const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+  if (!fs.existsSync(userDataDir)) {
+    fs.mkdirSync(userDataDir, { recursive: true });
+  }
+  if (!fs.existsSync(userDbPath)) {
+    fs.copyFileSync(packagedDbPath, userDbPath);
+  }
   ipcMain.handle('get-accounts-data', async () => {
     try {
-  const dbPath = path.join(__dirname, '../../assets/data.db');
-      const db = new Database(dbPath, { readonly: true });
+      const db = new Database(userDbPath, { readonly: true });
       const rows = db.prepare('SELECT * FROM accounts').all();
       db.close();
       return rows;
