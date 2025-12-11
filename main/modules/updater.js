@@ -6,7 +6,7 @@ const path = require('path');
 // Configure autoUpdater to use the generic provider and always check the latest release
 const updateConfig = {
   provider: 'generic',
-  url: 'https://github.com/kuntz09matthew/Financial-Assistance-App/releases/latest/download/'
+  url: 'https://github.com/kuntz09matthew/Financial-Assistance-App/releases/latest/download'
 };
 autoUpdater.setFeedURL(updateConfig);
 
