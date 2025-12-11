@@ -34,6 +34,10 @@ npx electron-rebuild
 Write-Log "Building renderer..."
 npm run build
 
+# 2.6. Build installer and release files
+Write-Log "Packaging app for release..."
+npm run dist
+
 # 3. Get new version
 $package = Get-Content package.json | ConvertFrom-Json
 $newVersion = $package.version
