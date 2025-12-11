@@ -45,6 +45,13 @@ const App = () => {
   // Month-to-date spending state
   const [monthToDateSpending, setMonthToDateSpending] = useState(null);
 
+  // --- UPDATE TEST BANNER ---
+  const updateBanner = (
+    <div style={{ background: '#ffe066', color: '#333', padding: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1em' }}>
+      v1.0.25 Update Test: If you see this banner, the update system works!
+    </div>
+  );
+
   // Fetch month-to-date spending from backend
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.getMonthToDateSpending) {
