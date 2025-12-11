@@ -95,3 +95,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.21] - 2025-12-11
 - No changes found.
 
+
+## [1.0.22] - 2025-12-11
+- No changes found.
+
