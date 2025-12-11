@@ -78,9 +78,35 @@ git push origin main --tags
 
 # 8. Create GitHub release (requires gh CLI)
 
+
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     Write-Log "Creating GitHub release..."
     gh release create v$newVersion --title "Release v$newVersion" --notes "$commitMessages"
+
+    # Upload update files to the release
+    $distPath = Join-Path $PSScriptRoot "..\dist"
+    $latestYml = Join-Path $distPath "latest.yml"
+    $exe = Get-ChildItem -Path $distPath -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $blockmap = Get-ChildItem -Path $distPath -Filter "*.blockmap" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+    if (Test-Path $latestYml) {
+        Write-Log "Uploading latest.yml to GitHub release..."
+        gh release upload v$newVersion $latestYml --clobber
+    } else {
+        Write-Log "latest.yml not found, skipping upload."
+    }
+    if ($exe) {
+        Write-Log "Uploading $($exe.Name) to GitHub release..."
+        gh release upload v$newVersion $($exe.FullName) --clobber
+    } else {
+        Write-Log ".exe file not found, skipping upload."
+    }
+    if ($blockmap) {
+        Write-Log "Uploading $($blockmap.Name) to GitHub release..."
+        gh release upload v$newVersion $($blockmap.FullName) --clobber
+    } else {
+        Write-Log ".blockmap file not found, skipping upload."
+    }
 } else {
     Write-Log "GitHub CLI (gh) not found. Skipping GitHub release creation."
 }
