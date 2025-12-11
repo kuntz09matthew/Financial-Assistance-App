@@ -66,6 +66,12 @@ const App = () => {
 
   // Listen for menu toggle (to be wired to Electron menu)
   useEffect(() => {
+    // --- UPDATE TEST BANNER ---
+    const updateBanner = (
+      <div style={{ background: '#ffe066', color: '#333', padding: '8px', textAlign: 'center', fontWeight: 'bold', fontSize: '1.1em' }}>
+        v1.0.25 Update Test: If you see this banner, the update system works!
+      </div>
+    );
     // Listen for theme-toggle event from main process
     const handler = () => setIsDarkMode((prev) => !prev);
     window.addEventListener('theme-toggle', handler);
@@ -186,6 +192,7 @@ const App = () => {
           {isDarkMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
         </button>
       </div>
+      {updateBanner}
       {isOffline && (
         <div style={{ background: theme.warning, color: theme.error, padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center', fontWeight: 'bold', boxShadow: `0 2px 8px ${theme.border}` }}>
           You are currently offline. Some features may be unavailable.
@@ -212,9 +219,9 @@ const App = () => {
               borderRadius: '6px',
               padding: '0.75rem',
               border: `1px solid ${theme.border}`,
-              cursor: 'pointer',
-              fontSize: '1rem',
-              transition: 'background 0.2s',
+      cursor: 'pointer',
+      fontSize: '1rem',
+      transition: 'background 0.2s',
             }}
             onClick={() => {/* future navigation logic here */}}
             aria-label="Go to Dashboard"
