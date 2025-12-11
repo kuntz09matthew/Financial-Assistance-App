@@ -39,7 +39,7 @@
         "zip",
         "nsis"
       ],
-      "artifactName": "${productName} Setup ${version}.${ext}"
+      "artifactName": "Financial.Assistance.App.Setup.${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
