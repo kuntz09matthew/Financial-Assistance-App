@@ -12,8 +12,14 @@ app.whenReady().then(() => {
   setupIPC();
   setupAutoUpdater();
 
-  // Add View menu with theme toggle
+  // Add File, View, and Help menus
   const template = [
+    {
+      label: 'File',
+      submenu: [
+        // Add file-related items here in the future
+      ],
+    },
     {
       label: 'View',
       submenu: [
@@ -26,9 +32,27 @@ app.whenReady().then(() => {
         },
       ],
     },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Check for Updates',
+          click: () => {
+            mainWindow.webContents.send('manual-update-check');
+          },
+        },
+        // Add more help items here in the future
+      ],
+    },
   ];
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+// Listen for manual update check from menu
+const { ipcMain } = require('electron');
+ipcMain.on('manual-update-check', () => {
+  const { autoUpdater } = require('electron-updater');
+  autoUpdater.checkForUpdates();
+});
 });
 
 app.on('window-all-closed', () => {
