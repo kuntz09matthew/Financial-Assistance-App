@@ -28,6 +28,12 @@ if ($gitStatus) {
 Write-Log "Bumping version ($ReleaseType)..."
 npm version $ReleaseType --no-git-tag-version
 
+# 2.5. Rebuild native modules and build renderer
+Write-Log "Running electron-rebuild to ensure native modules are compatible..."
+npx electron-rebuild
+Write-Log "Building renderer..."
+npm run build
+
 # 3. Get new version
 $package = Get-Content package.json | ConvertFrom-Json
 $newVersion = $package.version
