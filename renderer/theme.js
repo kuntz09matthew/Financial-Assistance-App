@@ -26,5 +26,6 @@ export const darkTheme = {
   error: '#ff1744',
   success: '#00e676',
   info: '#2979ff',
-  border: '#232a3d',
+  border: '#3a4060', // lighter, more visible border for dark mode
+  cardAlt: '#232a3d',
 };

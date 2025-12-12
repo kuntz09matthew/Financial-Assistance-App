@@ -1,8 +1,168 @@
+
 const { ipcMain, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+const Database = require('better-sqlite3');
+
+// Handler to get all transactions for a given month (YYYY-MM)
+ipcMain.handle('get-transactions-for-month', async (event, month) => {
+  try {
+    const appName = 'Financial Assistance App';
+    const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+    const userDbPath = path.join(userDataDir, 'data.db');
+    const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+    if (!fs.existsSync(userDataDir)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+    }
+    if (!fs.existsSync(userDbPath)) {
+      fs.copyFileSync(packagedDbPath, userDbPath);
+    }
+    const db = new Database(userDbPath, { readonly: true });
+    // Get all transactions for the given month
+    const stmt = db.prepare(`SELECT date, amount, category, description FROM transactions WHERE strftime('%Y-%m', date) = ? ORDER BY date ASC`);
+    const rows = stmt.all(month);
+    db.close();
+    return { transactions: rows };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
 
 function setupIPC() {
+  // Dashboard: Month-over-month summary for last N months
+  ipcMain.handle('get-monthly-summary', async (event, months = 6) => {
+    try {
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      // Get last N months summary (including current)
+      const stmt = db.prepare(`
+        SELECT
+          strftime('%Y-%m', date) as month,
+          SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) as totalIncome,
+          ABS(SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END)) as totalSpending
+        FROM transactions
+        WHERE date >= date('now', ?)
+        GROUP BY month
+        ORDER BY month DESC
+        LIMIT ?
+      `);
+      // e.g., '-5 months' to include current and previous 5 months
+      const offset = `-${months - 1} months`;
+      const rows = stmt.all(offset, months);
+      // Add netSavings and ensure all months are present (fill missing months with zeros)
+      const now = new Date();
+      const result = [];
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = d.toISOString().slice(0, 7);
+        const found = rows.find(r => r.month === key);
+        result.push({
+          month: key,
+          totalIncome: found ? found.totalIncome : 0,
+          totalSpending: found ? found.totalSpending : 0,
+          netSavings: found ? (found.totalIncome - found.totalSpending) : 0
+        });
+      }
+      db.close();
+      return { monthlySummary: result };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+  // Budget Health Score (0-100)
+  ipcMain.handle('get-budget-health-score', async () => {
+    try {
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      // Get all accounts and balances
+      const accounts = db.prepare('SELECT * FROM accounts').all();
+      // Get this month's total income and expenses
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
+      // Income: sum of positive transactions in current month
+      const incomeStmt = db.prepare('SELECT SUM(amount) as totalIncome FROM transactions WHERE date >= ? AND date <= ? AND amount > 0');
+      const incomeResult = incomeStmt.get(firstDay, lastDay);
+      const totalIncome = incomeResult.totalIncome || 0;
+      // Expenses: sum of negative transactions in current month
+      const expenseStmt = db.prepare('SELECT SUM(amount) as totalExpenses FROM transactions WHERE date >= ? AND date <= ? AND amount < 0');
+      const expenseResult = expenseStmt.get(firstDay, lastDay);
+      const totalExpenses = Math.abs(expenseResult.totalExpenses || 0);
+      // Net savings = income - expenses
+      const netSavings = totalIncome - totalExpenses;
+      // Available balance = sum of all account balances
+      const availableBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+      // Health score logic (simple version):
+      // 100 = Net savings >= 20% of income, no negative balances
+      // 80-99 = Net savings 10-20% of income, no negative balances
+      // 60-79 = Net savings 0-10% of income, no negative balances
+      // 40-59 = Net savings <0, but available balance positive
+      // 20-39 = Net savings <0, available balance <0 but not deeply negative
+      // 0-19 = Deeply negative available balance or net savings
+      let score = 100;
+      if (totalIncome <= 0) {
+        score = 10;
+      } else if (netSavings >= 0.2 * totalIncome && availableBalance >= 0) {
+        score = 100;
+      } else if (netSavings >= 0.1 * totalIncome && availableBalance >= 0) {
+        score = 90;
+      } else if (netSavings >= 0 && availableBalance >= 0) {
+        score = 75;
+      } else if (netSavings < 0 && availableBalance >= 0) {
+        score = 55;
+      } else if (availableBalance < 0 && availableBalance > -1000) {
+        score = 30;
+      } else {
+        score = 10;
+      }
+      db.close();
+      return { budgetHealthScore: score };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
   // Month-to-date spending summary handler
+  // Days until next paycheck handler (demo: biweekly on Fridays)
+  ipcMain.handle('get-days-until-next-paycheck', async () => {
+    try {
+      // For demo: assume next paycheck is the next Friday (biweekly)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun, 5=Fri
+      let daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+      if (daysUntilFriday === 0) daysUntilFriday = 7; // Always future, not today
+      // TODO: Replace with DB-driven logic when paycheck schedule is stored
+      const nextPaycheckDate = new Date(now);
+      nextPaycheckDate.setDate(now.getDate() + daysUntilFriday);
+      return {
+        daysUntilNextPaycheck: daysUntilFriday,
+        nextPaycheckDate: nextPaycheckDate.toISOString().slice(0, 10)
+      };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
   ipcMain.handle('get-month-to-date-spending', async () => {
     try {
       const path = require('path');
@@ -31,6 +191,43 @@ function setupIPC() {
       const result = stmt.get(firstDay, lastDay);
       db.close();
       return { monthToDateSpending: Math.abs(result.totalSpending || 0) };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+
+  // Spending velocity (average daily spending for current month)
+  ipcMain.handle('get-spending-velocity', async () => {
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const os = require('os');
+      const Database = require('better-sqlite3');
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      // Get the first and last day of the current month
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
+      // Sum all negative (spending) transactions for this month
+      const stmt = db.prepare(`SELECT SUM(amount) as totalSpending FROM transactions WHERE date >= ? AND date <= ? AND amount < 0`);
+      const result = stmt.get(firstDay, lastDay);
+      // Calculate days elapsed in current month (including today)
+      const daysElapsed = now.getDate();
+      const avgDailySpending = daysElapsed > 0 ? Math.abs((result.totalSpending || 0) / daysElapsed) : 0;
+      db.close();
+      return { spendingVelocity: avgDailySpending };
     } catch (err) {
       return { error: err.message };
     }

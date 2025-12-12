@@ -32,4 +32,5 @@ module.exports = {
     }),
   ],
   target: 'electron-renderer',
+  devtool: 'source-map', // CSP-safe source maps
 };

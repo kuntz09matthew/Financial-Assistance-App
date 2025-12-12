@@ -12,4 +12,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, data) => callback(data)),
   getAccountsData: async () => await ipcRenderer.invoke('get-accounts-data'),
   getMonthToDateSpending: async () => await ipcRenderer.invoke('get-month-to-date-spending'),
+  getSpendingVelocity: async () => await ipcRenderer.invoke('get-spending-velocity'),
+  getDaysUntilNextPaycheck: async () => await ipcRenderer.invoke('get-days-until-next-paycheck'),
+  getBudgetHealthScore: async () => await ipcRenderer.invoke('get-budget-health-score'),
+  getMonthlySummary: async (months = 6) => await ipcRenderer.invoke('get-monthly-summary', months),
 });

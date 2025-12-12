@@ -30,6 +30,15 @@ app.whenReady().then(() => {
             mainWindow.webContents.send('theme-toggle');
           },
         },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => {
+            if (mainWindow) {
+              mainWindow.webContents.toggleDevTools();
+            }
+          },
+        },
       ],
     },
     {
