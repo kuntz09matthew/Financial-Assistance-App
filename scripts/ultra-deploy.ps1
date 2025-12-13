@@ -44,7 +44,8 @@ if ($gitStatus) {
     Write-Log "No uncommitted changes detected."
 }
 
-# 1.5. Gather commit messages and determine release type using Conventional Commits
+
+# 1.5. Gather commit messages and determine release type using Conventional Commits (robust)
 Write-Log "Analyzing commit messages to determine version bump (Conventional Commits)..."
 $lastTag = git describe --tags --abbrev=0 2>$null
 if (-not $lastTag) { $lastTag = "" }
@@ -57,15 +58,15 @@ if ($lastTag -ne "") {
     $commitMessages = git log --pretty=format:"- %s" | Where-Object { $_ -notmatch "Ultra-deploy: release v" -and $_ -notmatch "Auto-commit: changes before ultra-deploy" }
 }
 
-# Default to patch
+# Improved regex for Conventional Commits
 $ReleaseType = "patch"
 if ($commitList | Select-String -Pattern "BREAKING CHANGE" -SimpleMatch) {
     $ReleaseType = "major"
-} elseif ($commitList | Select-String -Pattern "^feat!|^fix!|^.*!:" -SimpleMatch) {
+} elseif ($commitList | Select-String -Pattern "(^feat!|^fix!|^.*!:)" -SimpleMatch) {
     $ReleaseType = "major"
-} elseif ($commitList | Select-String -Pattern "^feat:" -SimpleMatch) {
+} elseif ($commitList | Select-String -Pattern "(^feat:|^feature:)" -SimpleMatch) {
     $ReleaseType = "minor"
-} elseif ($commitList | Select-String -Pattern "^fix:" -SimpleMatch) {
+} elseif ($commitList | Select-String -Pattern "(^fix:|^bug:)" -SimpleMatch) {
     $ReleaseType = "patch"
 }
 Write-Log "Determined release type: $ReleaseType"
@@ -92,8 +93,17 @@ Write-Log "New version: $newVersion"
 
 # 4. Update CHANGELOG.md and prepare release notes
 $date = Get-Date -Format "yyyy-MM-dd"
+# Always ensure release notes are populated
 if (-not $commitMessages -or $commitMessages.Count -eq 0) {
-    $commitMessages = "- No changes found."
+    # Fallback: extract latest unreleased or new version section from CHANGELOG.md
+    Write-Log "No relevant commit messages found. Using latest CHANGELOG.md section as release notes."
+    $changelog = Get-Content CHANGELOG.md -Raw
+    $pattern = "## \[$newVersion\][^#]*"
+    $changelogSection = [regex]::Match($changelog, $pattern).Value
+    if (-not $changelogSection) {
+        $changelogSection = "- No changes found."
+    }
+    $commitMessages = $changelogSection -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
 }
 $changelogEntry = "`n## [$newVersion] - $date`n$($commitMessages -join "`n")`n"
 Add-Content -Path CHANGELOG.md -Value $changelogEntry

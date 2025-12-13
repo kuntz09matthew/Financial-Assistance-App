@@ -1,3 +1,13 @@
+#
+# Commit Message Guidelines for Versioning
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) to determine version bumps and release notes:
+
+- **Features:** `feat: description` (bumps minor version)
+- **Bugfixes:** `fix: description` (bumps patch version)
+- **Breaking changes:** `BREAKING CHANGE:` or `!` in type (bumps major version)
+
+Please use these prefixes in your commit messages for accurate versioning and changelogs.
 # Financial Assistance App
 
 This repository contains the source code for the Financial Assistance App, an Electron desktop application designed to help families manage financial assistance and budgeting.
