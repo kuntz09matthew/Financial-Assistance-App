@@ -204,3 +204,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.40] - 2025-12-13
 #
 
+
+## [1.0.41] - 2025-12-13
+#
+
