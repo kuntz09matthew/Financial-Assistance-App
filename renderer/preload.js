@@ -16,4 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDaysUntilNextPaycheck: async () => await ipcRenderer.invoke('get-days-until-next-paycheck'),
   getBudgetHealthScore: async () => await ipcRenderer.invoke('get-budget-health-score'),
   getMonthlySummary: async (months = 6) => await ipcRenderer.invoke('get-monthly-summary', months),
+  getUpcomingBillReminders: async () => await ipcRenderer.invoke('get-upcoming-bill-reminders'),
+  invoke: async (channel, ...args) => await ipcRenderer.invoke(channel, ...args),
 });

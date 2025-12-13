@@ -31,6 +31,71 @@ ipcMain.handle('get-transactions-for-month', async (event, month) => {
 });
 
 function setupIPC() {
+  // Upcoming Bill Reminders (next 7 days)
+  ipcMain.handle('get-upcoming-bill-reminders', async () => {
+    try {
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      const today = new Date();
+      const todayStr = today.toISOString().slice(0, 10);
+      const sevenDaysLater = new Date(today);
+      sevenDaysLater.setDate(today.getDate() + 7);
+      const sevenDaysStr = sevenDaysLater.toISOString().slice(0, 10);
+      // Fetch all bills (negative transactions) due in next 7 days
+      const bills = db.prepare(`
+        SELECT id, date, amount, category, description, paid, auto_pay
+        FROM transactions
+        WHERE date > ? AND date <= ? AND amount < 0
+        ORDER BY date ASC
+      `).all(todayStr, sevenDaysStr);
+      // Group by urgency
+      const grouped = { urgent: [], soon: [], upcoming: [] };
+      let totalDue = 0, unpaidCount = 0, autoPayCount = 0;
+      for (const bill of bills) {
+        const dueDate = new Date(bill.date);
+        const daysAway = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+        let urgency = '';
+        if (daysAway <= 2) urgency = 'urgent';
+        else if (daysAway <= 5) urgency = 'soon';
+        else urgency = 'upcoming';
+        // Paid/unpaid status
+        const isPaid = bill.paid === 1 || bill.paid === true;
+        // Auto-pay badge
+        const isAutoPay = bill.auto_pay === 1 || bill.auto_pay === true;
+        grouped[urgency].push({
+          ...bill,
+          isPaid,
+          isAutoPay,
+          daysAway
+        });
+        if (!isPaid) {
+          totalDue += Math.abs(bill.amount);
+          unpaidCount++;
+        }
+        if (isAutoPay) autoPayCount++;
+      }
+      db.close();
+      return {
+        grouped,
+        stats: {
+          totalDue,
+          unpaidCount,
+          autoPayCount
+        }
+      };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
   // Dashboard: Month-over-month summary for last N months
   ipcMain.handle('get-monthly-summary', async (event, months = 6) => {
     try {
@@ -197,6 +262,91 @@ function setupIPC() {
   });
 
   // Spending velocity (average daily spending for current month)
+  // Projected end-of-month balance handler
+  ipcMain.handle('get-projected-end-of-month-balance', async () => {
+    try {
+      console.log('[IPC] get-projected-end-of-month-balance called');
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      // Get all accounts and balances
+      const accounts = db.prepare('SELECT * FROM accounts').all();
+      const availableBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+      // Get this month's total income and expenses
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
+      // Income: sum of positive transactions in current month
+      const incomeStmt = db.prepare('SELECT SUM(amount) as totalIncome FROM transactions WHERE date >= ? AND date <= ? AND amount > 0');
+      const incomeResult = incomeStmt.get(firstDay, lastDay);
+      const totalIncome = incomeResult.totalIncome || 0;
+      // Expenses: sum of negative transactions in current month
+      const expenseStmt = db.prepare('SELECT SUM(amount) as totalExpenses FROM transactions WHERE date >= ? AND date <= ? AND amount < 0');
+      const expenseResult = expenseStmt.get(firstDay, lastDay);
+      const totalExpenses = Math.abs(expenseResult.totalExpenses || 0);
+      // Get all future-dated income (remaining paychecks this month)
+      const today = now.toISOString().slice(0, 10);
+      const futureIncomeStmt = db.prepare('SELECT SUM(amount) as futureIncome FROM transactions WHERE date > ? AND date <= ? AND amount > 0');
+      const futureIncomeResult = futureIncomeStmt.get(today, lastDay);
+      const futureIncome = futureIncomeResult.futureIncome || 0;
+      // Get all future-dated bills (remaining expenses this month)
+      const futureBillsStmt = db.prepare('SELECT SUM(amount) as futureBills FROM transactions WHERE date > ? AND date <= ? AND amount < 0');
+      const futureBillsResult = futureBillsStmt.get(today, lastDay);
+      const futureBills = Math.abs(futureBillsResult.futureBills || 0);
+      // Estimate variable spending for rest of month (spending velocity * days left)
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const currentDay = now.getDate();
+      const daysLeft = daysInMonth - currentDay;
+      // Calculate average daily spending so far
+      const daysElapsed = currentDay;
+      const avgDailySpending = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+      const projectedVariableSpending = Math.round(avgDailySpending * daysLeft);
+      // Projected end-of-month balance calculation
+      const projectedBalance = availableBalance + futureIncome - futureBills - projectedVariableSpending;
+      // Health status
+      let status = 'healthy';
+      if (projectedBalance < 0) status = 'critical';
+      else if (projectedBalance < 200) status = 'warning';
+      else if (projectedBalance < 500) status = 'caution';
+      // Insights
+      let insight = '';
+      if (status === 'critical') insight = 'Warning: You are projected to run out of money by month end.';
+      else if (status === 'warning') insight = 'Caution: Your projected balance is very low. Consider reducing spending.';
+      else if (status === 'caution') insight = 'Monitor your spending to avoid a negative balance.';
+      else insight = 'You are on track for a healthy month.';
+      db.close();
+      const result = {
+        projectedBalance,
+        status,
+        insight,
+        breakdown: {
+          availableBalance,
+          futureIncome,
+          futureBills,
+          projectedVariableSpending,
+          daysLeft,
+          avgDailySpending,
+          totalIncome,
+          totalExpenses
+        }
+      };
+      console.log('[IPC] Projected balance result:', result);
+      return result;
+    } catch (err) {
+      console.error('[IPC] Error in get-projected-end-of-month-balance:', err);
+      return { error: err.message };
+    }
+  });
   ipcMain.handle('get-spending-velocity', async () => {
     try {
       const path = require('path');

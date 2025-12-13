@@ -1,6 +1,17 @@
+# [1.0.14] - 2025-12-12
 ### Added
-- Dashboard: Total Fixed Expenses display, with correct calculation and theme support
-- Improved test/demo expenses data for realistic ~$60k/year household (added more fixed expenses)
+- Alerts & Warnings: Upcoming Bill Reminders (next 7 days) feature with urgency grouping, color-coded indicators, auto-pay/manual badges, paid/unpaid status, and quick stats. Fully integrated into UI with theme and accessibility support.
+- Database schema: Added `paid` and `auto_pay` columns to `transactions` table for bill tracking.
+- Test data: Automatically inserted realistic test bills for the next 7 days to validate reminders feature.
+
+### Improved
+- UI polish and accessibility for Alerts & Warnings tab. All new features tested with dark/light theme toggle.
+
+### Fixed
+- Ensured all new features use modular design and follow roadmap quality standards.
+
+### Updated
+- Documentation and test data scripts for new bill reminder logic.
 # [1.0.13] - 2025-12-11
 ### Added
 - Dashboard: Month-to-date spending summary card, with live calculation from new data.db (SQLite) and realistic test data for a ~$60k/year household

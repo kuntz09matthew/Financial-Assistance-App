@@ -131,7 +131,60 @@ A feature is only complete when:
 - ✅ Documentation is updated
 - ✅ User can successfully use the feature without assistance
 - ✅ Feature is tested in the actual built application (not just dev mode)
+
 # Kuntz Family Financial Assistant - Complete Roadmap
+
+## 🗂️ Page & Navigation Structure
+
+All features are organized into the following main pages and sub-pages for optimal usability and scalability:
+
+1. **Dashboard**
+  - Overview (high-level metrics, health score, spending velocity, available money, days until next paycheck)
+  - Alerts & Warnings (upcoming bills, overdraft warnings, spending pattern alerts)
+  - Insights (AI-powered recommendations, positive insights, tips)
+  - Details Modal (opened from dashboard widgets)
+2. **Income**
+  - Sources (add/edit/delete income, frequency, expected vs. actual, tax breakdown)
+  - By Earner (multiple earners, contribution stats)
+  - Variable Income (analysis for freelance/side income)
+  - Trends (income over time, charts)
+  - Tax Estimator (tax bracket, net income, recommendations)
+  - Retirement (contribution tracking, limits, history)
+3. **Expenses (Bills)**
+  - Bills List (add/edit/delete, categories, due dates, auto-pay, payment status)
+  - Calendar (visual due dates, recurring bills)
+  - History (payment history, trends, export)
+  - Reminders (customizable reminders, snooze/dismiss)
+4. **Spending (Variable Expenses)**
+  - Categories (manage categories, set budgets, track spending)
+  - Trends (category trends, week-by-week breakdown)
+  - Transactions (manual entry, receipt upload, split transactions)
+  - Wish List (personal/family wish lists, fund allocation, progress)
+5. **Savings**
+  - Accounts/Goals (emergency fund, vacation, custom goals)
+  - Progress (visualizations, milestones, contribution tracking)
+  - Recommendations (auto-save, tips, high-yield tracker)
+6. **Financial Goals**
+  - Debt Payoff (track debts, calculators, payoff timeline)
+  - Wealth Building (net worth, retirement, investment goals)
+  - Life Goals (custom goals, link to savings/investments)
+  - Planning (SMART goals, dependencies, timeline)
+7. **Reports & Analytics**
+  - Monthly Summary (income vs. expenses, savings, trends)
+  - Spending Breakdown (by category, time, recurring vs. one-time)
+  - Income Report (sources, volatility, projections)
+  - Custom Reports (build/share/export custom reports)
+8. **Settings & Profile**
+  - User/Family Profiles (permissions, roles, allowance tracking)
+  - Customization (themes, dashboard widgets, alerts, preferences)
+  - Data & Security (backups, export/import, privacy)
+
+**Navigation:**
+- Main navigation is via sidebar or top nav with the above main pages.
+- Sub-navigation (tabs or secondary sidebar) is used within each main page for sub-sections.
+- Dashboard widgets only show high-level, actionable info; details/history are in sub-pages.
+
+---
 
 ## 🎯 Vision
 Transform from a simple budgeting tool into a comprehensive, intelligent financial assistant that helps your family make smart money decisions, avoid overdrafts, and optimize spending based on real-world conditions.
@@ -141,27 +194,65 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
 
 ## 📊 Core Features Breakdown
 
+
 ### 1. **Dashboard (Smart Overview)**
 **Current Status:** Ready for verification
 **What Needs to Be Built:**
 
 #### Phase 1: Basic Metrics
-[x] Real-time account balances (checking, savings, credit cards)
-[x] Total monthly income display
-[x] Total fixed expenses display
-[x] Available spending money calculation
-[x] Month-to-date spending summary
 
-[x] Spending velocity indicator (how fast you're spending)
-[x] Days until next paycheck countdown
-[x] "Money left per day" calculator
-[x] Overdraft warning system (color-coded alerts)
- [x] Budget health score (0-100)
-[x] Comparison to previous months
+- [✅] Real-time account balances (checking, savings, credit cards)
+  - Connect to backend to fetch up-to-date balances for all linked accounts
+  - Display balances with account type icons and color coding
+  - Support for manual entry and future bank sync integration
+- [✅] Total monthly income display
+  - Aggregate all income sources for the current month
+  - Visual summary card with breakdown by source
+  - Responsive design for mobile and desktop
+- [✅] Total fixed expenses display
+  - Sum all recurring bills and fixed expenses for the month
+  - Show breakdown by category (housing, utilities, etc.)
+  - Highlight upcoming due dates
+- [✅] Available spending money calculation
+  - Calculate available funds: income minus fixed expenses and bills
+  - Visual indicator for safe-to-spend amount
+  - Update in real time as transactions are entered
+- [✅] Month-to-date spending summary
+  - Aggregate all spending for the current month
+  - Show progress bar vs. budgeted amount
+  - Highlight categories with highest spending
+  - Drill-down to transaction list from summary
+
+#### Phase 2: Intelligent Insights
+
+- [✅] Spending velocity indicator (how fast you're spending)
+  - Calculate average daily/weekly spending rate
+  - Visualize spending pace with color-coded meter
+  - Alert if spending is above safe rate for the month
+- [✅] Days until next paycheck countdown
+  - Calculate and display days remaining until next expected income
+  - Show countdown prominently on dashboard
+  - Support multiple pay schedules
+- [ ] "Money left per day" calculator
+  - Divide remaining safe-to-spend by days left in month
+  - Show daily budget target and progress
+  - Alert if daily average is exceeded
+- [✅] Overdraft warning system (color-coded alerts)
+  - Monitor projected balances and upcoming bills
+  - Display warnings if risk of overdraft is detected
+  - Color-coded banners (green/yellow/red) for risk level
+- [✅] Budget health score (0-100)
+  - Calculate score based on spending, income, and bill status
+  - Visual health meter with explanation of score
+  - Suggest actions to improve score
+- [✅] Comparison to previous months
+  - Show month-over-month trends for income, expenses, and spending
+  - Visual charts comparing current and past months
+  - Highlight improvements and areas of concern
 
 #### Phase 3: Predictive Analytics
 **Current Status:**
-[ ] Projected end-of-month balance
+- [✅] Projected end-of-month balance
   - Comprehensive calculation based on current balance, expected income, remaining bills, and spending velocity
   - Real-time projection with health status indicators (healthy, caution, warning, critical)
   - Detailed breakdown showing starting balance, expected income with upcoming paychecks, unpaid bills, and projected variable spending
@@ -170,7 +261,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Interactive modal with full calculation details
   - Visual color-coded status indicators
   - Integrated into Dashboard Overview tab
-  [ ] Upcoming bill reminders (next 7 days)
+- [✅] Upcoming bill reminders (next 7 days)
     - Comprehensive upcoming bills display in Alerts & Warnings tab
     - Bills grouped by urgency level (Urgent: 1-2 days, Soon: 3-5 days, Upcoming: 6-7 days)
     - Color-coded urgency indicators (Red/Yellow/Green)
@@ -182,7 +273,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
     - Bill management tips and recommendations
     - Responsive design for mobile devices
     - Integrated into Dashboard Alerts tab
-  [ ] Spending pattern alerts ("You usually spend more on groceries this week")
+- [ ] Spending pattern alerts ("You usually spend more on groceries this week")
   - Historical pattern analysis (4-6 months of transaction data)
   - Weekly and monthly pattern detection
   - Category-specific variance tracking
@@ -193,7 +284,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Real-time recommendations
   - Beautiful UI with color-coded alerts
   - Integrated into Dashboard Alerts & Warnings tab
-  [ ] Smart AI-powered recommendations
+- [ ] Smart AI-powered recommendations
   - **Comprehensive Financial Analysis Engine:** 9 analysis phases covering all aspects of user finances
   - **Multi-Dimensional Data Gathering:** Account balances, income sources, fixed expenses, spending patterns, historical trends (6 months)
   - **Intelligent Priority System:** Critical/Urgent/High/Medium/Low priority classification
@@ -221,8 +312,10 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - **AI Version 2.0:** Significantly enhanced from basic recommendations to comprehensive financial assistant
   - Integrated into Dashboard Insights tab with separate sections for priority actions, recommendations, insights, and tips---
 
+...existing code...
+
 ### 2. **Income Tracking**
-**Current Status:** Phase 1 Complete ✅
+**Current Status:** 
 **What Needs to Be Built:**
 
 #### Phase 1: Basic Income Management
@@ -231,12 +324,12 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Real-time validation and error handling
   - Support for multiple household earners
   [ ] Income source types:
-  - Primary salary ✅
-  - Secondary salary ✅
-  - Freelance/side hustle ✅
-  - Investment income ✅
-  - Rental income ✅
-  - Other income ✅
+  - Primary salary 
+  - Secondary salary 
+  - Freelance/side hustle 
+  - Investment income 
+  - Rental income 
+  - Other income
   - Each type has appropriate icon and display
   [ ] Frequency settings (weekly, bi-weekly, monthly, annual)
   - All 4 frequencies fully supported
