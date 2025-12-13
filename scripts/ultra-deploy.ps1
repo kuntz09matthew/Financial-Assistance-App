@@ -2,14 +2,13 @@
 # This script automates deployment: version bump, commit, push, and GitHub release.
 # Usage: Run from project root in PowerShell: ./scripts/ultra-deploy.ps1
 
-param(
-    [string]$ReleaseType = "patch"  # Accepts: major, minor, patch
-)
+
 
 function Write-Log {
     param([string]$Message)
     Write-Host "[Ultra-Deploy] $Message"
 }
+
 
 
 # 1. Detect and commit all changes since last release
@@ -23,6 +22,29 @@ if ($gitStatus) {
 } else {
     Write-Log "No uncommitted changes detected."
 }
+
+# 1.5. Determine release type using Conventional Commits
+Write-Log "Analyzing commit messages to determine version bump (Conventional Commits)..."
+$lastTag = git describe --tags --abbrev=0 2>$null
+if (-not $lastTag) { $lastTag = "" }
+if ($lastTag -ne "") {
+    $commitList = git log $lastTag..HEAD --pretty=format:"%s%n%b"
+} else {
+    $commitList = git log --pretty=format:"%s%n%b"
+}
+
+# Default to patch
+$ReleaseType = "patch"
+if ($commitList | Select-String -Pattern "BREAKING CHANGE" -SimpleMatch) {
+    $ReleaseType = "major"
+} elseif ($commitList | Select-String -Pattern "^feat!|^fix!|^.*!:" -SimpleMatch) {
+    $ReleaseType = "major"
+} elseif ($commitList | Select-String -Pattern "^feat:" -SimpleMatch) {
+    $ReleaseType = "minor"
+} elseif ($commitList | Select-String -Pattern "^fix:" -SimpleMatch) {
+    $ReleaseType = "patch"
+}
+Write-Log "Determined release type: $ReleaseType"
 
 # 2. Bump version in package.json
 Write-Log "Bumping version ($ReleaseType)..."
