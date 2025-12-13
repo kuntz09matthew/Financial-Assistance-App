@@ -17,7 +17,27 @@ $gitStatus = git status --porcelain
 if ($gitStatus) {
     Write-Log "Uncommitted changes detected. Staging and committing all changes..."
     git add -A
-    $autoCommitMsg = "Auto-commit: changes before ultra-deploy v$((Get-Content package.json | ConvertFrom-Json).version)"
+    # Determine auto-commit type for Conventional Commits
+    $featureFiles = @('main/', 'renderer/', 'components/', 'assets/', 'docs/', 'scripts/', 'package.json', 'webpack.config.js')
+    $bugfixFiles = @('fix', 'bug', 'hotfix')
+    $changedFiles = git diff --cached --name-only
+    $isFeature = $false
+    $isFix = $false
+    foreach ($file in $changedFiles) {
+        foreach ($pattern in $featureFiles) {
+            if ($file -like "*$pattern*") { $isFeature = $true }
+        }
+        foreach ($pattern in $bugfixFiles) {
+            if ($file -like "*$pattern*") { $isFix = $true }
+        }
+    }
+    if ($isFeature) {
+        $autoCommitMsg = "feat: auto-commit changes before ultra-deploy v$((Get-Content package.json | ConvertFrom-Json).version)"
+    } elseif ($isFix) {
+        $autoCommitMsg = "fix: auto-commit changes before ultra-deploy v$((Get-Content package.json | ConvertFrom-Json).version)"
+    } else {
+        $autoCommitMsg = "chore: auto-commit changes before ultra-deploy v$((Get-Content package.json | ConvertFrom-Json).version)"
+    }
     git commit -m $autoCommitMsg
     Write-Log "Committed all changes."
 } else {
