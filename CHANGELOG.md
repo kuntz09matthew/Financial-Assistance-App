@@ -142,3 +142,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.30] - 2025-12-13
 - No changes found.
 
+
+## [1.0.31] - 2025-12-13
+- No changes found.
+
