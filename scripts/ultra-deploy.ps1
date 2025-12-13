@@ -95,11 +95,11 @@ Write-Log "New version: $newVersion"
 $date = Get-Date -Format "yyyy-MM-dd"
 # Always ensure release notes are populated
 if (-not $commitMessages -or $commitMessages.Count -eq 0) {
-    # Fallback: extract latest unreleased or new version section from CHANGELOG.md
-    Write-Log "No relevant commit messages found. Using latest CHANGELOG.md section as release notes."
+    # Fallback: extract the 'Unreleased' section from CHANGELOG.md
+    Write-Log "No relevant commit messages found. Using 'Unreleased' section from CHANGELOG.md as release notes."
     $changelog = Get-Content CHANGELOG.md -Raw
-    $pattern = "## \[$newVersion\][^#]*"
-    $changelogSection = [regex]::Match($changelog, $pattern).Value
+    $pattern = "## \[Unreleased\](.*?)(?=## |\z)"
+    $changelogSection = [regex]::Match($changelog, $pattern, [System.Text.RegularExpressions.RegexOptions]::Singleline).Groups[1].Value.Trim()
     if (-not $changelogSection) {
         $changelogSection = "- No changes found."
     }
