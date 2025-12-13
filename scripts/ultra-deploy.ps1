@@ -11,6 +11,7 @@ function Write-Log {
 
 
 
+
 # 1. Detect and commit all changes since last release
 $gitStatus = git status --porcelain
 if ($gitStatus) {
@@ -23,14 +24,17 @@ if ($gitStatus) {
     Write-Log "No uncommitted changes detected."
 }
 
-# 1.5. Determine release type using Conventional Commits
+# 1.5. Gather commit messages and determine release type using Conventional Commits
 Write-Log "Analyzing commit messages to determine version bump (Conventional Commits)..."
 $lastTag = git describe --tags --abbrev=0 2>$null
 if (-not $lastTag) { $lastTag = "" }
+# Gather commit messages since last tag (excluding version bump/ultra-deploy commits)
 if ($lastTag -ne "") {
     $commitList = git log $lastTag..HEAD --pretty=format:"%s%n%b"
+    $commitMessages = git log $lastTag..HEAD --pretty=format:"- %s" | Where-Object { $_ -notmatch "Ultra-deploy: release v" -and $_ -notmatch "Auto-commit: changes before ultra-deploy" }
 } else {
     $commitList = git log --pretty=format:"%s%n%b"
+    $commitMessages = git log --pretty=format:"- %s" | Where-Object { $_ -notmatch "Ultra-deploy: release v" -and $_ -notmatch "Auto-commit: changes before ultra-deploy" }
 }
 
 # Default to patch
@@ -60,34 +64,18 @@ npm run build
 Write-Log "Packaging app for release..."
 npm run dist
 
+
 # 3. Get new version
 $package = Get-Content package.json | ConvertFrom-Json
 $newVersion = $package.version
 Write-Log "New version: $newVersion"
 
-
-# 4. Update CHANGELOG.md
+# 4. Update CHANGELOG.md and prepare release notes
 $date = Get-Date -Format "yyyy-MM-dd"
-
-# Get last tag (previous release)
-$lastTag = git describe --tags --abbrev=0 2>$null
-if (-not $lastTag) {
-    $lastTag = ""
-}
-
-# Get commit messages since last tag
-if ($lastTag -ne "") {
-    $commitMessages = git log $lastTag..HEAD --pretty=format:"- %s"
-} else {
-    $commitMessages = git log --pretty=format:"- %s"
-}
-
-if (-not $commitMessages) {
+if (-not $commitMessages -or $commitMessages.Count -eq 0) {
     $commitMessages = "- No changes found."
 }
-
-# Prepare changelog entry
-$changelogEntry = "`n## [$newVersion] - $date`n$commitMessages`n"
+$changelogEntry = "`n## [$newVersion] - $date`n$($commitMessages -join "`n")`n"
 Add-Content -Path CHANGELOG.md -Value $changelogEntry
 
 # 5. Update VERSION.md
@@ -108,12 +96,12 @@ git tag v$newVersion
 Write-Log "Pushing to GitHub..."
 git push origin main --tags
 
+
 # 8. Create GitHub release (requires gh CLI)
-
-
 if (Get-Command gh -ErrorAction SilentlyContinue) {
     Write-Log "Creating GitHub release..."
-    gh release create v$newVersion --title "Release v$newVersion" --notes "$commitMessages"
+    $releaseNotes = $commitMessages -join "`n"
+    gh release create v$newVersion --title "Release v$newVersion" --notes "$releaseNotes"
 
     # Upload update files to the release
     $distPath = Join-Path $PSScriptRoot "..\dist"
