@@ -2,6 +2,8 @@
 
 ### Added
 - Spending pattern alerts on Dashboard: Detects unusual spending patterns by category, provides severity-based alerts, and allows users to dismiss or expand alert details. Alerts are persisted and do not reappear once dismissed. See README.md for usage.
+- Financial Analysis Engine: Aggregates balances, income, expenses, and trends for the last 6 months. Provides AI-powered recommendations and insights in the Dashboard Insights tab. Fully theme-aware, modular, and accessible. Uses realistic test data for a ~$60k/year household in the database.
+- Insights Tab: Displays actionable recommendations, positive insights, and financial tips based on user data. Includes loading and error handling states.
 
 ### Changed
 

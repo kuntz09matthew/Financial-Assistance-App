@@ -4,6 +4,7 @@ import MonthDetailModal from './MonthDetailModal';
 import { ProjectedBalanceModal, MonthComparisonChart } from './App.jsx';
 import BillReminders from './BillReminders';
 import PatternAlerts from './PatternAlerts';
+import { RecommendationCard } from './InsightsCards';
 
 // AccordionSection component for collapsible UI
 function AccordionSection({ title, theme, defaultCollapsed = false, children }) {
@@ -77,6 +78,25 @@ export default function DashboardPage(props) {
   // State for Money Left Per Day
   const [moneyLeftPerDay, setMoneyLeftPerDay] = useState(null);
   const [moneyLeftPerDayError, setMoneyLeftPerDayError] = useState(null);
+
+  // State for Financial Analysis Engine (AI-powered recommendations)
+  const [analysis, setAnalysis] = useState(null);
+  const [analysisError, setAnalysisError] = useState(null);
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.invoke) {
+      window.electronAPI.invoke('get-financial-analysis')
+        .then((result) => {
+          if (result && !result.error) {
+            setAnalysis(result);
+          } else {
+            setAnalysisError(result?.error || 'Unknown error');
+          }
+        })
+        .catch((err) => setAnalysisError(err.message));
+    } else {
+      setAnalysisError('IPC not available');
+    }
+  }, []);
 
   // State for Spending Pattern Alerts
   const [patternAlerts, setPatternAlerts] = useState(null);
@@ -269,7 +289,20 @@ export default function DashboardPage(props) {
       ) : dashboardTab === 'insights' ? (
         <div style={{ color: theme.subtext, textAlign: 'center', marginTop: '2rem' }}>
           <h2 style={{ color: theme.text, fontWeight: 700, fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Insights</h2>
-          <div>Coming soon: AI-powered recommendations, positive insights, and financial tips!</div>
+          {analysisError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {analysisError}</div>}
+          {analysis === null && !analysisError && (
+            <div style={{ color: theme.subtext, marginTop: 8 }}>Loading recommendations...</div>
+          )}
+          {analysis && analysis.recommendations && analysis.recommendations.length > 0 && (
+            <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'left' }}>
+              {analysis.recommendations.map((rec, i) => (
+                <RecommendationCard key={i} rec={rec} theme={theme} />
+              ))}
+            </div>
+          )}
+          {analysis && analysis.recommendations && analysis.recommendations.length === 0 && (
+            <div style={{ color: theme.success, marginTop: 12 }}>No recommendations at this time. Your finances look great!</div>
+          )}
         </div>
       ) : (
         <>
