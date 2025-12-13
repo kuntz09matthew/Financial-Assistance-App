@@ -1,4 +1,23 @@
+## [Unreleased]
+
+### Added
+- Spending pattern alerts on Dashboard: Detects unusual spending patterns by category, provides severity-based alerts, and allows users to dismiss or expand alert details. Alerts are persisted and do not reappear once dismissed. See README.md for usage.
+
+### Changed
+
+### Fixed
+
+---
 # vNEXT
+- Added: Spending Pattern Alerts to Dashboard (Alerts & Warnings tab)
+    - Analyzes 4-6 months of transaction data for each category
+    - Detects when current week/month spending is 30%+ higher or lower than historical average
+    - Severity-based (High/Medium) alerts and positive insights for reduced spending
+    - Fully theme-aware, mobile-responsive, and accessible
+    - Alerts are shown in a compact, expandable list; each can be marked as read and will not reappear
+    - All logic and UI follow roadmap quality standards and modular design
+    - Realistic test data for ~$60k/year household included in SQLite database
+    - Documentation and UI updated for new feature
 - Added "Money left per day" calculator to Dashboard:
 	- Calculates daily budget target based on remaining safe-to-spend and days left in the month
 	- Displays daily target, progress, and alert if daily average is exceeded

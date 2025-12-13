@@ -3,6 +3,44 @@ import DashboardCard from './DashboardCard';
 import MonthDetailModal from './MonthDetailModal';
 import { ProjectedBalanceModal, MonthComparisonChart } from './App.jsx';
 import BillReminders from './BillReminders';
+import PatternAlerts from './PatternAlerts';
+
+// AccordionSection component for collapsible UI
+function AccordionSection({ title, theme, defaultCollapsed = false, children }) {
+  const [collapsed, setCollapsed] = React.useState(defaultCollapsed);
+  return (
+    <div style={{ borderRadius: 10, border: `2px solid ${theme.accent}33`, background: theme.card, boxShadow: `0 1px 8px ${theme.border}`, marginBottom: 12 }}>
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        aria-expanded={!collapsed}
+        aria-controls={`section-${title.replace(/\s+/g, '-')}`}
+        style={{
+          width: '100%',
+          background: 'none',
+          border: 'none',
+          color: theme.accent,
+          fontWeight: 800,
+          fontSize: '1.13rem',
+          padding: '0.9rem 1.2rem',
+          textAlign: 'left',
+          cursor: 'pointer',
+          outline: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>{title}</span>
+        <span style={{ fontSize: 22, marginLeft: 8 }}>{collapsed ? '▼' : '▲'}</span>
+      </button>
+      {!collapsed && (
+        <div id={`section-${title.replace(/\s+/g, '-')}`} style={{ padding: '0.5rem 1.2rem 1.2rem 1.2rem' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage(props) {
   const {
@@ -35,9 +73,31 @@ export default function DashboardPage(props) {
     dashboardTab
   } = props;
 
+
   // State for Money Left Per Day
   const [moneyLeftPerDay, setMoneyLeftPerDay] = useState(null);
   const [moneyLeftPerDayError, setMoneyLeftPerDayError] = useState(null);
+
+  // State for Spending Pattern Alerts
+  const [patternAlerts, setPatternAlerts] = useState(null);
+  const [patternAlertsError, setPatternAlertsError] = useState(null);
+  const [patternDetail, setPatternDetail] = useState(null);
+  // Fetch pattern alerts from backend via IPC on mount
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.invoke) {
+      window.electronAPI.invoke('get-spending-pattern-alerts', 6)
+        .then((result) => {
+          if (result && !result.error) {
+            setPatternAlerts(result.alerts);
+          } else {
+            setPatternAlertsError(result?.error || 'Unknown error');
+          }
+        })
+        .catch((err) => setPatternAlertsError(err.message));
+    } else {
+      setPatternAlertsError('IPC not available');
+    }
+  }, []);
 
   // Fetch daily budget info from backend via IPC on mount
   // Result: { safeToSpend, daysLeft, moneyLeftPerDay, avgSpentPerDay, alert }
@@ -115,11 +175,95 @@ export default function DashboardPage(props) {
       {dashboardTab === 'alerts' ? (
         <div>
           <h2 style={{ color: theme.text, fontWeight: 700, fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Alerts & Warnings</h2>
+          {/* Spending Pattern Alerts Section */}
+          <div style={{ marginBottom: 32 }}>
+            <AccordionSection
+              title="Spending Pattern Alerts"
+              theme={theme}
+              defaultCollapsed={true}
+            >
+              {patternAlertsError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {patternAlertsError}</div>}
+              {patternAlerts === null && !patternAlertsError && (
+                <div style={{ color: theme.subtext, marginTop: 8 }}>Loading pattern alerts...</div>)}
+              {patternAlerts && (
+                <PatternAlerts alerts={patternAlerts} theme={theme} />
+              )}
+            </AccordionSection>
+          </div>
+
+          {/* Bill Reminders Section */}
+          <h3 style={{ color: theme.accent, fontWeight: 700, fontSize: '1.15rem', marginBottom: 8 }}>Upcoming Bill Reminders</h3>
           {billRemindersError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {billRemindersError}</div>}
           {billReminders ? (
             <BillReminders grouped={billReminders.grouped} stats={billReminders.stats} theme={theme} />
           ) : (
             <div style={{ color: theme.subtext, marginTop: 16 }}>No bill reminders data received.</div>
+          )}
+          {/* Pattern Alert Detail Modal */}
+          {patternDetail && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                background: `${theme.background}ee`,
+                zIndex: 1000,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onClick={() => setPatternDetail(null)}
+            >
+              <div
+                style={{
+                  background: theme.card,
+                  color: theme.text,
+                  borderRadius: 16,
+                  boxShadow: `0 4px 32px ${theme.border}`,
+                  padding: '2.2rem 2.5rem',
+                  minWidth: 340,
+                  maxWidth: 480,
+                  maxHeight: '80vh',
+                  overflowY: 'auto',
+                  position: 'relative',
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  aria-label="Close"
+                  onClick={() => setPatternDetail(null)}
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    background: 'none',
+                    border: 'none',
+                    color: theme.subtext,
+                    fontSize: 22,
+                    cursor: 'pointer',
+                  }}
+                >×</button>
+                <h2 style={{ color: patternDetail.positive ? theme.success : patternDetail.severity === 'High' ? theme.error : theme.warning, fontWeight: 800, fontSize: '1.3rem', marginBottom: 8 }}>
+                  {patternDetail.positive ? 'Positive Insight' : 'Spending Alert'}: {patternDetail.category}
+                </h2>
+                <div style={{ fontSize: '1.08rem', fontWeight: 600, marginBottom: 8 }}>{patternDetail.message}</div>
+                <div style={{ fontSize: '1.01rem', color: theme.subtext, marginBottom: 12 }}>{patternDetail.recommendation}</div>
+                <div style={{ fontSize: '0.98rem', marginBottom: 6 }}>
+                  <b>Period:</b> {patternDetail.period === 'week' ? 'This Week' : 'This Month'}<br />
+                  <b>Current Spending:</b> ${patternDetail.current.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br />
+                  <b>Historical Avg:</b> ${patternDetail.average.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br />
+                  <b>Variance:</b> {Math.round(patternDetail.variance * 100)}%
+                </div>
+                <div style={{ fontSize: '0.97rem', color: theme.subtext }}>
+                  {patternDetail.positive ? 'Keep up the good work!' : 'Consider adjusting your spending habits.'}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       ) : dashboardTab === 'insights' ? (

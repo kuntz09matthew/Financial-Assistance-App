@@ -71,5 +71,17 @@ The Financial Assistance App is built with a modular architecture to ensure main
 
 For more details, see the code comments in each module and the [docs/](docs/) folder.
 
+## Spending Pattern Alerts (Dashboard)
+
+The Dashboard now features a new "Spending Pattern Alerts" section in the Alerts & Warnings tab. This system analyzes your last 4-6 months of spending by category and notifies you if your current week or month spending is significantly higher or lower than usual (30%+ variance). Alerts are color-coded by severity, can be expanded for details, and can be marked as read (they will not reappear). All logic is modular, theme-aware, and accessible. Test data for a ~$60k/year household is included in the SQLite database for realistic demo and testing.
+
+**How to use:**
+- Go to Dashboard > Alerts & Warnings
+- Click the "Spending Pattern Alerts" section to expand
+- Review any new alerts; click to expand for details
+- Mark alerts as read to hide them permanently
+
+This feature helps you spot unusual spending patterns and take action before they become a problem.
+
 ## License
 See `LICENSE` for usage terms.

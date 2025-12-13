@@ -508,4 +508,114 @@ function setupIPC() {
   });
 }
 
+
+// Spending Pattern Alerts (4-6 months analysis)
+ipcMain.handle('get-spending-pattern-alerts', async (event, months = 6) => {
+  try {
+    const appName = 'Financial Assistance App';
+    const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+    const userDbPath = path.join(userDataDir, 'data.db');
+    const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+    if (!fs.existsSync(userDataDir)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+    }
+    if (!fs.existsSync(userDbPath)) {
+      fs.copyFileSync(packagedDbPath, userDbPath);
+    }
+    const db = new Database(userDbPath, { readonly: true });
+    // Get all transactions for the last N months
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+    const startStr = startDate.toISOString().slice(0, 10);
+    const rows = db.prepare(`SELECT date, amount, category FROM transactions WHERE date >= ? AND amount < 0`).all(startStr);
+    db.close();
+    // Group by category and week number
+    const byCategory = {};
+    for (const tx of rows) {
+      const d = new Date(tx.date);
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      // Week of month (1-5)
+      const week = Math.floor((d.getDate() - 1) / 7) + 1;
+      const cat = tx.category || 'Uncategorized';
+      if (!byCategory[cat]) byCategory[cat] = { weeks: {}, months: {} };
+      // By week
+      const weekKey = `${year}-${(month+1).toString().padStart(2,'0')}-W${week}`;
+      if (!byCategory[cat].weeks[weekKey]) byCategory[cat].weeks[weekKey] = 0;
+      byCategory[cat].weeks[weekKey] += Math.abs(tx.amount);
+      // By month
+      const monthKey = `${year}-${(month+1).toString().padStart(2,'0')}`;
+      if (!byCategory[cat].months[monthKey]) byCategory[cat].months[monthKey] = 0;
+      byCategory[cat].months[monthKey] += Math.abs(tx.amount);
+    }
+    // Analyze for current week and month
+    const alerts = [];
+    const today = new Date();
+    const thisYear = today.getFullYear();
+    const thisMonth = today.getMonth() + 1;
+    const thisMonthKey = `${thisYear}-${thisMonth.toString().padStart(2,'0')}`;
+    const thisWeek = Math.floor((today.getDate() - 1) / 7) + 1;
+    const thisWeekKey = `${thisYear}-${thisMonth.toString().padStart(2,'0')}-W${thisWeek}`;
+    for (const [cat, data] of Object.entries(byCategory)) {
+      // --- Weekly pattern ---
+      const weekVals = Object.entries(data.weeks)
+        .filter(([k]) => k !== thisWeekKey)
+        .map(([,v]) => v);
+      const weekAvg = weekVals.length ? weekVals.reduce((a,b)=>a+b,0)/weekVals.length : 0;
+      const thisWeekSpend = data.weeks[thisWeekKey] || 0;
+      if (weekAvg > 0) {
+        const diff = thisWeekSpend - weekAvg;
+        const pct = diff / weekAvg;
+        if (Math.abs(pct) >= 0.3) {
+          alerts.push({
+            category: cat,
+            period: 'week',
+            current: thisWeekSpend,
+            average: weekAvg,
+            variance: pct,
+            severity: Math.abs(pct) > 0.5 ? 'High' : 'Medium',
+            positive: pct < 0,
+            message: pct > 0
+              ? `Spending in ${cat} is ${Math.round(pct*100)}% higher than usual this week.`
+              : `Spending in ${cat} is ${Math.abs(Math.round(pct*100))}% lower than usual this week. Great job!`,
+            recommendation: pct > 0
+              ? `Consider reviewing your ${cat} spending for possible savings.`
+              : `Keep up the good work controlling your ${cat} spending.`
+          });
+        }
+      }
+      // --- Monthly pattern ---
+      const monthVals = Object.entries(data.months)
+        .filter(([k]) => k !== thisMonthKey)
+        .map(([,v]) => v);
+      const monthAvg = monthVals.length ? monthVals.reduce((a,b)=>a+b,0)/monthVals.length : 0;
+      const thisMonthSpend = data.months[thisMonthKey] || 0;
+      if (monthAvg > 0) {
+        const diff = thisMonthSpend - monthAvg;
+        const pct = diff / monthAvg;
+        if (Math.abs(pct) >= 0.3) {
+          alerts.push({
+            category: cat,
+            period: 'month',
+            current: thisMonthSpend,
+            average: monthAvg,
+            variance: pct,
+            severity: Math.abs(pct) > 0.5 ? 'High' : 'Medium',
+            positive: pct < 0,
+            message: pct > 0
+              ? `Spending in ${cat} is ${Math.round(pct*100)}% higher than usual this month.`
+              : `Spending in ${cat} is ${Math.abs(Math.round(pct*100))}% lower than usual this month. Great job!`,
+            recommendation: pct > 0
+              ? `Review your ${cat} expenses for possible savings opportunities.`
+              : `Excellent! Keep your ${cat} spending in check.`
+          });
+        }
+      }
+    }
+    return { alerts };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 module.exports = { setupIPC };
