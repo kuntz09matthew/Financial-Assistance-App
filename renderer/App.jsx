@@ -1,4 +1,35 @@
 import React, { useState, useEffect } from 'react';
+// Update progress modal
+function UpdateProgressModal({ open, status, message, theme, onClose }) {
+  if (!open) return null;
+  // Show a progress bar if downloading, else just status text
+  let progress = null;
+  let percent = null;
+  if (status === 'downloading' && message && message.match(/\((\d+)%\)/)) {
+    percent = parseInt(message.match(/\((\d+)%\)/)[1], 10);
+    progress = (
+      <div style={{ width: '100%', background: theme.border, borderRadius: 8, margin: '16px 0' }}>
+        <div style={{ width: `${percent}%`, height: 16, background: theme.accent, borderRadius: 8, transition: 'width 0.3s' }}></div>
+      </div>
+    );
+  }
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.32)', zIndex: 2000,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ background: theme.card, borderRadius: 16, boxShadow: `0 4px 32px ${theme.border}`,
+        padding: 32, minWidth: 320, maxWidth: 400, color: theme.text, position: 'relative', textAlign: 'center' }}>
+        <h2 style={{ color: theme.accent, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8 }}>Updating Application</h2>
+        <div style={{ fontSize: '1.1rem', marginBottom: 12 }}>{message}</div>
+        {progress}
+        {(status === 'downloaded' || status === 'error' || status === 'up-to-date') && (
+          <button onClick={onClose} style={{ marginTop: 16, background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer' }}>Close</button>
+        )}
+      </div>
+    </div>
+  );
+}
 import { lightTheme, darkTheme } from './theme';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import AppNav from './AppNav';
@@ -284,6 +315,7 @@ function App() {
   const [updateStatus, setUpdateStatus] = useState('idle');
   const [updateMessage, setUpdateMessage] = useState('');
   const [showUpdateHelp, setShowUpdateHelp] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [income, setIncome] = useState(() => loadData('income', DEMO_INCOME));
   const [expenses, setExpenses] = useState(() => loadData('expenses', DEMO_EXPENSES));
@@ -324,6 +356,10 @@ function App() {
       window.electronAPI.onUpdateStatus((data) => {
         setUpdateStatus(data.status);
         setUpdateMessage(data.message);
+        // Show modal for all update events except idle
+        if (data.status && data.status !== 'idle') setShowUpdateModal(true);
+        // Auto-close modal if up-to-date after a short delay
+        if (data.status === 'up-to-date') setTimeout(() => setShowUpdateModal(false), 2000);
       });
     }
   }, []);
@@ -343,6 +379,13 @@ function App() {
 
   return (
     <Router>
+      <UpdateProgressModal
+        open={showUpdateModal && updateStatus !== 'idle'}
+        status={updateStatus}
+        message={updateMessage}
+        theme={theme}
+        onClose={() => setShowUpdateModal(false)}
+      />
       <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: theme.background, minHeight: '100vh', padding: '2rem' }}>
         {/* Overdraft Warning Alert */}
         {accounts && accounts.some(acc => acc.type === 'Checking' && acc.balance < 0) && (
