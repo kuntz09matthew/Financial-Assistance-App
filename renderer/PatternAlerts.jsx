@@ -39,17 +39,39 @@ export default function PatternAlerts({ alerts, theme }) {
     return <div style={{ color: theme.subtext, marginTop: 16 }}>No new spending pattern alerts.</div>;
   }
 
+  // Priority-based color and icon
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'Critical': return { bg: theme.errorBg, color: theme.error, border: theme.error };
+      case 'Urgent': return { bg: theme.warningBg, color: theme.warning, border: theme.warning };
+      case 'High': return { bg: theme.warningBg, color: theme.warning, border: theme.warning };
+      case 'Medium': return { bg: theme.accentBg || theme.card, color: theme.accent, border: theme.accent };
+      case 'Low': return { bg: theme.card, color: theme.text, border: theme.border };
+      case 'Positive': return { bg: theme.successBg, color: theme.success, border: theme.success };
+      default: return { bg: theme.card, color: theme.text, border: theme.border };
+    }
+  };
+  const getPriorityIcon = (priority, positive) => {
+    if (positive || priority === 'Positive') return '👍';
+    if (priority === 'Critical') return '🛑';
+    if (priority === 'Urgent') return '⚠️';
+    if (priority === 'High') return '⚡';
+    if (priority === 'Medium') return '🔔';
+    if (priority === 'Low') return 'ℹ️';
+    return '🔔';
+  };
   return (
     <div style={{ marginTop: 8 }}>
       {visibleAlerts.map((alert, idx) => {
         const isOpen = expanded === idx;
+        const { bg, color, border } = getPriorityColor(alert.priority);
         return (
           <div
             key={getAlertKey(alert)}
             style={{
-              background: alert.positive ? theme.successBg : alert.severity === 'High' ? theme.errorBg : theme.warningBg,
-              color: alert.positive ? theme.success : alert.severity === 'High' ? theme.error : theme.warning,
-              border: `2px solid ${alert.positive ? theme.success : alert.severity === 'High' ? theme.error : theme.warning}`,
+              background: bg,
+              color: color,
+              border: `2px solid ${border}`,
               borderRadius: 10,
               marginBottom: 10,
               boxShadow: `0 1px 4px ${theme.border}`,
@@ -66,7 +88,7 @@ export default function PatternAlerts({ alerts, theme }) {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>
-                {alert.positive ? '👍' : alert.severity === 'High' ? '⚠️' : '⚡'} {alert.category} <span style={{ fontWeight: 500, fontSize: '0.98rem', marginLeft: 6 }}>{alert.period === 'week' ? '(This Week)' : '(This Month)'}</span>
+                {getPriorityIcon(alert.priority, alert.positive)} {alert.category} <span style={{ fontWeight: 500, fontSize: '0.98rem', marginLeft: 6 }}>{alert.period === 'week' ? '(This Week)' : '(This Month)'}</span>
               </div>
               <button
                 onClick={e => { e.stopPropagation(); markAsRead(alert); }}
@@ -95,6 +117,7 @@ export default function PatternAlerts({ alerts, theme }) {
                   <b>Current Spending:</b> ${alert.current.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br />
                   <b>Historical Avg:</b> ${alert.average.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br />
                   <b>Variance:</b> {Math.round(alert.variance * 100)}%
+                  <br /><b>Priority:</b> {alert.priority}
                 </div>
               </div>
             )}

@@ -5,6 +5,7 @@ export function RecommendationCard({ rec, theme }) {
     rec.priority === 'Urgent' ? theme.warning :
     rec.priority === 'High' ? theme.warning :
     rec.priority === 'Medium' ? theme.accent :
+    rec.priority === 'Low' ? theme.text :
     rec.priority === 'Positive' ? theme.success :
     theme.text;
   return (

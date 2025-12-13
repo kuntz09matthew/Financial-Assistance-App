@@ -70,7 +70,20 @@ function getTrends(db, now, months = 6) {
 function getRecommendations(totalIncome, totalExpenses) {
   // Returns array of recommendations based on income/expenses
   const recommendations = [];
-  if (totalIncome < totalExpenses) {
+  // Calculate spending ratio
+  const spendingRatio = totalIncome > 0 ? totalExpenses / totalIncome : 1;
+  // Priority assignment logic
+  if (totalIncome === 0) {
+    recommendations.push({
+      title: 'No Income Detected',
+      message: 'No income has been recorded for this month. Add your income sources to get accurate recommendations.',
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: 0,
+      actions: ['Add your income sources in the Income section.']
+    });
+  } else if (totalIncome < totalExpenses) {
     recommendations.push({
       title: 'Spending Exceeds Income',
       message: 'Your expenses are higher than your income this month. Consider reducing discretionary spending.',
@@ -80,7 +93,17 @@ function getRecommendations(totalIncome, totalExpenses) {
       impactEstimate: totalExpenses - totalIncome,
       actions: ['Review your largest expense categories.', 'Set a budget for next month.']
     });
-  } else if (totalIncome > 0 && totalExpenses / totalIncome > 0.85) {
+  } else if (spendingRatio > 0.95) {
+    recommendations.push({
+      title: 'Severe Budget Risk',
+      message: 'You are spending more than 95% of your income. Immediate action is required to avoid overdraft.',
+      priority: 'Urgent',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: totalIncome - totalExpenses,
+      actions: ['Freeze discretionary spending.', 'Review all upcoming bills.']
+    });
+  } else if (spendingRatio > 0.85) {
     recommendations.push({
       title: 'High Spending Rate',
       message: 'You are spending more than 85% of your income. Try to save at least 15% if possible.',
@@ -90,15 +113,35 @@ function getRecommendations(totalIncome, totalExpenses) {
       impactEstimate: totalIncome * 0.15,
       actions: ['Identify areas to cut back.', 'Automate savings transfers.']
     });
+  } else if (spendingRatio > 0.7) {
+    recommendations.push({
+      title: 'Moderate Spending',
+      message: 'You are spending more than 70% of your income. Consider increasing your savings rate if possible.',
+      priority: 'Medium',
+      impact: 'Medium',
+      timeline: 'This Month',
+      impactEstimate: totalIncome * 0.3,
+      actions: ['Review your savings goals.', 'Look for small expenses to reduce.']
+    });
+  } else if (spendingRatio > 0.5) {
+    recommendations.push({
+      title: 'Healthy Spending',
+      message: 'Your spending is within a healthy range for your income. Keep up the good work and consider increasing savings.',
+      priority: 'Low',
+      impact: 'Low',
+      timeline: 'Ongoing',
+      impactEstimate: totalIncome * 0.5,
+      actions: ['Continue monitoring your finances.', 'Increase savings if possible.']
+    });
   } else {
     recommendations.push({
-      title: 'Good Financial Health',
-      message: 'Your spending is within a healthy range for your income. Keep up the good work!',
+      title: 'Excellent Financial Health',
+      message: 'Your spending is well below your income. Great job! Consider investing or increasing your savings goals.',
       priority: 'Positive',
       impact: 'Low',
       timeline: 'Ongoing',
       impactEstimate: 0,
-      actions: ['Continue monitoring your finances.']
+      actions: ['Continue your current habits.', 'Review investment opportunities.']
     });
   }
   return recommendations;
@@ -680,6 +723,15 @@ ipcMain.handle('get-spending-pattern-alerts', async (event, months = 6) => {
         const diff = thisWeekSpend - weekAvg;
         const pct = diff / weekAvg;
         if (Math.abs(pct) >= 0.3) {
+          // Assign priority based on severity and direction
+          let priority = 'Medium';
+          if (pct > 0.7) priority = 'Critical';
+          else if (pct > 0.5) priority = 'Urgent';
+          else if (pct > 0.3) priority = 'High';
+          else if (pct < -0.7) priority = 'Positive';
+          else if (pct < -0.5) priority = 'Positive';
+          else if (pct < -0.3) priority = 'Positive';
+          else priority = 'Medium';
           alerts.push({
             category: cat,
             period: 'week',
@@ -687,6 +739,7 @@ ipcMain.handle('get-spending-pattern-alerts', async (event, months = 6) => {
             average: weekAvg,
             variance: pct,
             severity: Math.abs(pct) > 0.5 ? 'High' : 'Medium',
+            priority,
             positive: pct < 0,
             message: pct > 0
               ? `Spending in ${cat} is ${Math.round(pct*100)}% higher than usual this week.`
@@ -707,6 +760,14 @@ ipcMain.handle('get-spending-pattern-alerts', async (event, months = 6) => {
         const diff = thisMonthSpend - monthAvg;
         const pct = diff / monthAvg;
         if (Math.abs(pct) >= 0.3) {
+          let priority = 'Medium';
+          if (pct > 0.7) priority = 'Critical';
+          else if (pct > 0.5) priority = 'Urgent';
+          else if (pct > 0.3) priority = 'High';
+          else if (pct < -0.7) priority = 'Positive';
+          else if (pct < -0.5) priority = 'Positive';
+          else if (pct < -0.3) priority = 'Positive';
+          else priority = 'Medium';
           alerts.push({
             category: cat,
             period: 'month',
@@ -714,6 +775,7 @@ ipcMain.handle('get-spending-pattern-alerts', async (event, months = 6) => {
             average: monthAvg,
             variance: pct,
             severity: Math.abs(pct) > 0.5 ? 'High' : 'Medium',
+            priority,
             positive: pct < 0,
             message: pct > 0
               ? `Spending in ${cat} is ${Math.round(pct*100)}% higher than usual this month.`
