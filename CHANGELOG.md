@@ -1,3 +1,8 @@
+# vNEXT
+- Added "Money left per day" calculator to Dashboard:
+	- Calculates daily budget target based on remaining safe-to-spend and days left in the month
+	- Displays daily target, progress, and alert if daily average is exceeded
+	- Fully integrated with backend and frontend, with user-friendly icon and error handling
 # [1.0.14] - 2025-12-12
 ### Added
 - Alerts & Warnings: Upcoming Bill Reminders (next 7 days) feature with urgency grouping, color-coded indicators, auto-pay/manual badges, paid/unpaid status, and quick stats. Fully integrated into UI with theme and accessibility support.

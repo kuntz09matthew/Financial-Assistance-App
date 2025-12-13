@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardCard from './DashboardCard';
 import MonthDetailModal from './MonthDetailModal';
 import { ProjectedBalanceModal, MonthComparisonChart } from './App.jsx';
@@ -34,6 +34,28 @@ export default function DashboardPage(props) {
     billRemindersError,
     dashboardTab
   } = props;
+
+  // State for Money Left Per Day
+  const [moneyLeftPerDay, setMoneyLeftPerDay] = useState(null);
+  const [moneyLeftPerDayError, setMoneyLeftPerDayError] = useState(null);
+
+  // Fetch daily budget info from backend via IPC on mount
+  // Result: { safeToSpend, daysLeft, moneyLeftPerDay, avgSpentPerDay, alert }
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.invoke) {
+      window.electronAPI.invoke('get-money-left-per-day')
+        .then((result) => {
+          if (result && !result.error) {
+            setMoneyLeftPerDay(result);
+          } else {
+            setMoneyLeftPerDayError(result?.error || 'Unknown error');
+          }
+        })
+        .catch((err) => setMoneyLeftPerDayError(err.message));
+    } else {
+      setMoneyLeftPerDayError('IPC not available');
+    }
+  }, []);
 
 
   // Dashboard tab navigation
@@ -195,6 +217,36 @@ export default function DashboardPage(props) {
               justifyContent: 'center',
               alignItems: 'stretch',
             }}>
+              {/* Money Left Per Day Card */}
+              <DashboardCard
+                label="Money Left Per Day"
+                value={
+                  moneyLeftPerDay === null
+                    ? 'Loading...'
+                    : moneyLeftPerDayError
+                    ? 'Error'
+                    : `$${moneyLeftPerDay.moneyLeftPerDay?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                }
+                icon="perday"
+                theme={theme}
+                border={`2px solid ${moneyLeftPerDay?.alert ? theme.error : theme.success}`}
+              >
+                {moneyLeftPerDay && !moneyLeftPerDayError && (
+                  <div style={{ fontSize: '0.95rem', color: theme.subtext, marginTop: '0.5rem' }}>
+                    <div><b>Daily Target:</b> ${moneyLeftPerDay.moneyLeftPerDay?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div><b>Avg Spent/Day:</b> ${moneyLeftPerDay.avgSpentPerDay?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div><b>Days Left:</b> {moneyLeftPerDay.daysLeft}</div>
+                    {moneyLeftPerDay.alert && (
+                      <div style={{ color: theme.error, fontWeight: 600, marginTop: 4 }}>
+                        <span role="img" aria-label="alert">⚠️</span> You are spending faster than your daily target!
+                      </div>
+                    )}
+                  </div>
+                )}
+                {moneyLeftPerDayError && (
+                  <div style={{ color: theme.error, fontWeight: 600, marginTop: 4 }}>{moneyLeftPerDayError}</div>
+                )}
+              </DashboardCard>
               {/* Budget Health Score Card */}
               <DashboardCard
                 label="Budget Health Score"

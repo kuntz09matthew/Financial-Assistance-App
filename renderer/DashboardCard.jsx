@@ -1,5 +1,7 @@
 import React from 'react';
 
+// iconMap: maps card type to emoji icon for DashboardCard
+// 'perday' is used for the "Money left per day" calculator card
 const iconMap = {
   total: '💰',
   checking: '💵',
@@ -10,6 +12,7 @@ const iconMap = {
   savingsNet: '💰',
   warning: '🚨',
   success: '✅',
+  perday: '📅', // for Money Left Per Day
 };
 
 export default function DashboardCard({ label, value, icon, theme, border, children }) {

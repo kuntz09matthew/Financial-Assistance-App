@@ -233,7 +233,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Calculate and display days remaining until next expected income
   - Show countdown prominently on dashboard
   - Support multiple pay schedules
-- [ ] "Money left per day" calculator
+- [✅] "Money left per day" calculator
   - Divide remaining safe-to-spend by days left in month
   - Show daily budget target and progress
   - Alert if daily average is exceeded

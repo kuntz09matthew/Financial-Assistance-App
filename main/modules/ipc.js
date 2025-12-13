@@ -31,6 +31,66 @@ ipcMain.handle('get-transactions-for-month', async (event, month) => {
 });
 
 function setupIPC() {
+  // Money Left Per Day Calculator
+    ipcMain.handle('get-money-left-per-day', async () => {
+      // Returns: { safeToSpend, daysLeft, perDay, alert }
+    try {
+      const appName = 'Financial Assistance App';
+      const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+      const userDbPath = path.join(userDataDir, 'data.db');
+      const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+      if (!fs.existsSync(userDataDir)) {
+        fs.mkdirSync(userDataDir, { recursive: true });
+      }
+      if (!fs.existsSync(userDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+      }
+      const db = new Database(userDbPath, { readonly: true });
+      // Get all accounts and balances
+      const accounts = db.prepare('SELECT * FROM accounts').all();
+      // Get this month's total income and expenses
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
+      // Income: sum of positive transactions in current month
+      const incomeStmt = db.prepare('SELECT SUM(amount) as totalIncome FROM transactions WHERE date >= ? AND date <= ? AND amount > 0');
+      const incomeResult = incomeStmt.get(firstDay, lastDay);
+      const totalIncome = incomeResult.totalIncome || 0;
+      // Expenses: sum of negative transactions in current month
+      const expenseStmt = db.prepare('SELECT SUM(amount) as totalExpenses FROM transactions WHERE date >= ? AND date <= ? AND amount < 0');
+      const expenseResult = expenseStmt.get(firstDay, lastDay);
+      const totalExpenses = Math.abs(expenseResult.totalExpenses || 0);
+      // Available balance = sum of all account balances (checking + savings)
+      const availableBalance = accounts
+        .filter(acc => acc.type === 'Checking' || acc.type === 'Savings')
+        .reduce((sum, acc) => sum + acc.balance, 0);
+      // Remaining safe-to-spend = available balance (or income - expenses if more accurate)
+      const safeToSpend = availableBalance;
+      // Days left in month (including today)
+      const today = now.getDate();
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const daysLeft = daysInMonth - today + 1;
+      // Money left per day
+      const moneyLeftPerDay = daysLeft > 0 ? safeToSpend / daysLeft : 0;
+      // Month-to-date spending (already spent)
+      const daysElapsed = today;
+      const avgSpentPerDay = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+      // Alert if average spent per day > money left per day
+      const alert = avgSpentPerDay > moneyLeftPerDay;
+      db.close();
+      return {
+        safeToSpend,
+        daysLeft,
+        moneyLeftPerDay,
+        avgSpentPerDay,
+        alert
+      };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
   // Upcoming Bill Reminders (next 7 days)
   ipcMain.handle('get-upcoming-bill-reminders', async () => {
     try {
