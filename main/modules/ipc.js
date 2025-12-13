@@ -30,6 +30,80 @@ ipcMain.handle('get-transactions-for-month', async (event, month) => {
   }
 });
 
+function getBalances(db) {
+  // Returns array of account balances
+  const accounts = db.prepare('SELECT * FROM accounts').all();
+  return accounts.map(acc => ({ id: acc.id, name: acc.name, type: acc.type, balance: acc.balance }));
+}
+
+function getTotalIncome(db, firstDay, lastDay) {
+  // Returns total income for the given period
+  const incomeStmt = db.prepare('SELECT SUM(amount) as totalIncome FROM transactions WHERE date >= ? AND date <= ? AND amount > 0');
+  const incomeResult = incomeStmt.get(firstDay, lastDay);
+  return incomeResult.totalIncome || 0;
+}
+
+function getTotalExpenses(db, firstDay, lastDay) {
+  // Returns total expenses for the given period
+  const expenseStmt = db.prepare('SELECT SUM(amount) as totalExpenses FROM transactions WHERE date >= ? AND date <= ? AND amount < 0');
+  const expenseResult = expenseStmt.get(firstDay, lastDay);
+  return Math.abs(expenseResult.totalExpenses || 0);
+}
+
+function getTrends(db, now, months = 6) {
+  // Returns array of income/expenses for last N months
+  const trends = [];
+  const year = now.getFullYear();
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(year, now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const start = `${y}-${m.toString().padStart(2, '0')}-01`;
+    const end = `${y}-${m.toString().padStart(2, '0')}-31`;
+    const inc = db.prepare('SELECT SUM(amount) as inc FROM transactions WHERE date >= ? AND date <= ? AND amount > 0').get(start, end).inc || 0;
+    const exp = Math.abs(db.prepare('SELECT SUM(amount) as exp FROM transactions WHERE date >= ? AND date <= ? AND amount < 0').get(start, end).exp || 0);
+    trends.push({ month: `${y}-${m.toString().padStart(2, '0')}`, income: inc, expenses: exp });
+  }
+  return trends;
+}
+
+function getRecommendations(totalIncome, totalExpenses) {
+  // Returns array of recommendations based on income/expenses
+  const recommendations = [];
+  if (totalIncome < totalExpenses) {
+    recommendations.push({
+      title: 'Spending Exceeds Income',
+      message: 'Your expenses are higher than your income this month. Consider reducing discretionary spending.',
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: totalExpenses - totalIncome,
+      actions: ['Review your largest expense categories.', 'Set a budget for next month.']
+    });
+  } else if (totalIncome > 0 && totalExpenses / totalIncome > 0.85) {
+    recommendations.push({
+      title: 'High Spending Rate',
+      message: 'You are spending more than 85% of your income. Try to save at least 15% if possible.',
+      priority: 'High',
+      impact: 'Medium',
+      timeline: 'This Month',
+      impactEstimate: totalIncome * 0.15,
+      actions: ['Identify areas to cut back.', 'Automate savings transfers.']
+    });
+  } else {
+    recommendations.push({
+      title: 'Good Financial Health',
+      message: 'Your spending is within a healthy range for your income. Keep up the good work!',
+      priority: 'Positive',
+      impact: 'Low',
+      timeline: 'Ongoing',
+      impactEstimate: 0,
+      actions: ['Continue monitoring your finances.']
+    });
+  }
+  return recommendations;
+}
+
 function setupIPC() {
   // Financial Analysis Engine: Aggregate/analyze user data for recommendations
   ipcMain.handle('get-financial-analysis', async () => {
@@ -45,67 +119,19 @@ function setupIPC() {
         fs.copyFileSync(packagedDbPath, userDbPath);
       }
       const db = new Database(userDbPath, { readonly: true });
-      // Aggregate balances
-      const accounts = db.prepare('SELECT * FROM accounts').all();
-      const balances = accounts.map(acc => ({ id: acc.id, name: acc.name, type: acc.type, balance: acc.balance }));
-      // Aggregate income (current month)
       const now = new Date();
       const year = now.getFullYear();
       const month = now.getMonth() + 1;
       const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
       const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
-      const incomeStmt = db.prepare('SELECT SUM(amount) as totalIncome FROM transactions WHERE date >= ? AND date <= ? AND amount > 0');
-      const incomeResult = incomeStmt.get(firstDay, lastDay);
-      const totalIncome = incomeResult.totalIncome || 0;
-      // Aggregate expenses (current month)
-      const expenseStmt = db.prepare('SELECT SUM(amount) as totalExpenses FROM transactions WHERE date >= ? AND date <= ? AND amount < 0');
-      const expenseResult = expenseStmt.get(firstDay, lastDay);
-      const totalExpenses = Math.abs(expenseResult.totalExpenses || 0);
-      // Trends: last 6 months income/expenses
-      const trends = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(year, now.getMonth() - i, 1);
-        const y = d.getFullYear();
-        const m = d.getMonth() + 1;
-        const start = `${y}-${m.toString().padStart(2, '0')}-01`;
-        const end = `${y}-${m.toString().padStart(2, '0')}-31`;
-        const inc = db.prepare('SELECT SUM(amount) as inc FROM transactions WHERE date >= ? AND date <= ? AND amount > 0').get(start, end).inc || 0;
-        const exp = Math.abs(db.prepare('SELECT SUM(amount) as exp FROM transactions WHERE date >= ? AND date <= ? AND amount < 0').get(start, end).exp || 0);
-        trends.push({ month: `${y}-${m.toString().padStart(2, '0')}`, income: inc, expenses: exp });
-      }
-      // Simple recommendations (placeholder logic)
-      const recommendations = [];
-      if (totalIncome < totalExpenses) {
-        recommendations.push({
-          title: 'Spending Exceeds Income',
-          message: 'Your expenses are higher than your income this month. Consider reducing discretionary spending.',
-          priority: 'Critical',
-          impact: 'High',
-          timeline: 'Immediate',
-          impactEstimate: totalExpenses - totalIncome,
-          actions: ['Review your largest expense categories.', 'Set a budget for next month.']
-        });
-      } else if (totalIncome > 0 && totalExpenses / totalIncome > 0.85) {
-        recommendations.push({
-          title: 'High Spending Rate',
-          message: 'You are spending more than 85% of your income. Try to save at least 15% if possible.',
-          priority: 'High',
-          impact: 'Medium',
-          timeline: 'This Month',
-          impactEstimate: totalIncome * 0.15,
-          actions: ['Identify areas to cut back.', 'Automate savings transfers.']
-        });
-      } else {
-        recommendations.push({
-          title: 'Good Financial Health',
-          message: 'Your spending is within a healthy range for your income. Keep up the good work!',
-          priority: 'Positive',
-          impact: 'Low',
-          timeline: 'Ongoing',
-          impactEstimate: 0,
-          actions: ['Continue monitoring your finances.']
-        });
-      }
+
+      // Modular aggregation
+      const balances = getBalances(db);
+      const totalIncome = getTotalIncome(db, firstDay, lastDay);
+      const totalExpenses = getTotalExpenses(db, firstDay, lastDay);
+      const trends = getTrends(db, now, 6);
+      const recommendations = getRecommendations(totalIncome, totalExpenses);
+
       db.close();
       return {
         balances,

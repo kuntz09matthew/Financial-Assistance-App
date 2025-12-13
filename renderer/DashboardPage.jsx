@@ -79,10 +79,13 @@ export default function DashboardPage(props) {
   const [moneyLeftPerDay, setMoneyLeftPerDay] = useState(null);
   const [moneyLeftPerDayError, setMoneyLeftPerDayError] = useState(null);
 
-  // State for Financial Analysis Engine (AI-powered recommendations)
+  // State for Financial Analysis Engine (AI-powered recommendations and analytics)
+  // This state will hold multi-dimensional data: balances, income, expenses, trends, and recommendations.
+  // Extensible for future analytics and AI modules.
   const [analysis, setAnalysis] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
   useEffect(() => {
+    // Fetch multi-dimensional financial data from backend via IPC
     if (window.electronAPI && window.electronAPI.invoke) {
       window.electronAPI.invoke('get-financial-analysis')
         .then((result) => {
