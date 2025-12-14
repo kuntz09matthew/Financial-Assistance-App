@@ -6,6 +6,7 @@ import BillReminders from './BillReminders';
 import PatternAlerts from './PatternAlerts';
 import { RecommendationCard } from './InsightsCards';
 import InsightsGroupedSection from './InsightsGroupedSection';
+import { TipCard } from './InsightsCards';
 import AccordionSection from './AccordionSection';
 
 export default function DashboardPage(props) {
@@ -49,6 +50,25 @@ export default function DashboardPage(props) {
   // Extensible for future analytics and AI modules.
   const [analysis, setAnalysis] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
+
+  // State for Financial Wisdom & Tips
+  const [wisdomTips, setWisdomTips] = useState(null);
+  const [wisdomTipsError, setWisdomTipsError] = useState(null);
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.invoke) {
+      window.electronAPI.invoke('get-wisdom-tips')
+        .then((result) => {
+          if (result && !result.error) {
+            setWisdomTips(result.tips);
+          } else {
+            setWisdomTipsError(result?.error || 'Unknown error');
+          }
+        })
+        .catch((err) => setWisdomTipsError(err.message));
+    } else {
+      setWisdomTipsError('IPC not available');
+    }
+  }, []);
   useEffect(() => {
     // Fetch multi-dimensional financial data from backend via IPC
     if (window.electronAPI && window.electronAPI.invoke) {
@@ -257,6 +277,47 @@ export default function DashboardPage(props) {
       ) : dashboardTab === 'insights' ? (
         <div style={{ color: theme.subtext, textAlign: 'center', marginTop: '2rem' }}>
           <h2 style={{ color: theme.text, fontWeight: 700, fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Insights</h2>
+          {/* Wisdom & Tips Section */}
+          <div style={{ maxWidth: 600, margin: '0 auto 2.5rem auto', textAlign: 'left' }}>
+            <AccordionSection
+              title="Financial Wisdom & Tips"
+              theme={theme}
+              defaultCollapsed={true}
+            >
+              {wisdomTipsError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {wisdomTipsError}</div>}
+              {wisdomTips === null && !wisdomTipsError && (
+                <div style={{ color: theme.subtext, marginTop: 8 }}>Loading tips...</div>
+              )}
+              {wisdomTips && wisdomTips.length > 0 && (
+                <div>
+                  {/* Group by type for better clarity */}
+                  {['rule', 'seasonal'].map(type => (
+                    wisdomTips.filter(tip => tip.type === type).length > 0 && (
+                      <div key={type} style={{ marginBottom: 12 }}>
+                        <div style={{ fontWeight: 700, color: theme.accent, marginBottom: 4, fontSize: '1.08rem' }}>
+                          {type === 'rule' ? 'General Rules' : 'Seasonal & Timely Advice'}
+                        </div>
+                        {wisdomTips.filter(tip => tip.type === type).map((tip, i) => (
+                          <TipCard
+                            key={i}
+                            text={tip.message}
+                            type={tip.type}
+                            season={tip.season}
+                            month={tip.month}
+                            theme={theme}
+                          />
+                        ))}
+                      </div>
+                    )
+                  ))}
+                </div>
+              )}
+              {wisdomTips && wisdomTips.length === 0 && (
+                <div style={{ color: theme.success, marginTop: 12 }}>No tips at this time.</div>
+              )}
+            </AccordionSection>
+          </div>
+          {/* Existing Recommendations Section */}
           {analysisError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {analysisError}</div>}
           {analysis === null && !analysisError && (
             <div style={{ color: theme.subtext, marginTop: 8 }}>Loading recommendations...</div>

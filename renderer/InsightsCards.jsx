@@ -86,7 +86,7 @@ export function InsightCard({ text, theme }) {
   );
 }
 
-export function TipCard({ text, theme }) {
+export function TipCard({ text, type, season, month, theme }) {
   return (
     <div style={{
       border: `1.5px dashed ${theme.accent}`,
@@ -97,6 +97,48 @@ export function TipCard({ text, theme }) {
       color: theme.accent,
       fontWeight: 600,
       fontSize: '1.01rem',
-    }}>{text}</div>
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      flexWrap: 'wrap',
+    }}>
+      <span>{text}</span>
+      {type && (
+        <span style={{
+          marginLeft: 8,
+          fontSize: '0.92em',
+          color: theme.subtext,
+          border: `1px solid ${theme.accent}`,
+          borderRadius: 6,
+          padding: '1px 7px',
+          background: theme.card,
+          fontWeight: 500,
+        }}>{type === 'rule' ? 'Rule' : 'Seasonal'}</span>
+      )}
+      {season && (
+        <span style={{
+          marginLeft: 4,
+          fontSize: '0.92em',
+          color: theme.success,
+          border: `1px solid ${theme.success}`,
+          borderRadius: 6,
+          padding: '1px 7px',
+          background: theme.card,
+          fontWeight: 500,
+        }}>{season}</span>
+      )}
+      {month && (
+        <span style={{
+          marginLeft: 4,
+          fontSize: '0.92em',
+          color: theme.info,
+          border: `1px solid ${theme.info}`,
+          borderRadius: 6,
+          padding: '1px 7px',
+          background: theme.card,
+          fontWeight: 500,
+        }}>Month: {month}</span>
+      )}
+    </div>
   );
 }

@@ -6,6 +6,93 @@ const fs = require('fs');
 const os = require('os');
 const Database = require('better-sqlite3');
 
+// Handler to get financial wisdom & tips (rules, seasonal advice)
+ipcMain.handle('get-wisdom-tips', async (event) => {
+  try {
+    const appName = 'Financial Assistance App';
+    const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+    const userDbPath = path.join(userDataDir, 'data.db');
+    const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+
+    // --- Wisdom Tips Table Migration ---
+    // Ensure wisdom_tips table exists in userDbPath, create and populate if missing
+    const migrateWisdomTipsTable = (db) => {
+      const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='wisdom_tips';").get();
+      if (!tableExists) {
+        db.prepare(`CREATE TABLE IF NOT EXISTS wisdom_tips (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          message TEXT NOT NULL,
+          type TEXT,
+          season TEXT,
+          month INTEGER
+        );`).run();
+        // Insert test data (id will auto-increment)
+        const tips = [
+          { message: 'Always pay yourself first: set aside savings before spending on anything else.', type: 'rule', season: null, month: null },
+          { message: 'Review your insurance coverage at the start of each year to ensure adequate protection.', type: 'seasonal', season: 'Winter', month: 1 },
+          { message: 'Plan for holiday expenses early in the fall to avoid debt in December.', type: 'seasonal', season: 'Fall', month: 10 },
+          { message: 'Check your credit report every spring to catch errors or fraud.', type: 'seasonal', season: 'Spring', month: 4 },
+          { message: 'Summer is a great time to review your utility bills and look for ways to save on energy.', type: 'seasonal', season: 'Summer', month: 7 },
+          { message: 'Automate bill payments to avoid late fees and protect your credit score.', type: 'rule', season: null, month: null },
+          { message: 'Track every dollar you spend for one month to discover hidden leaks in your budget.', type: 'rule', season: null, month: null },
+          { message: 'Set a realistic grocery budget and stick to it, especially during back-to-school season.', type: 'seasonal', season: 'Fall', month: 9 },
+          { message: 'Start a holiday savings fund in January to spread out costs.', type: 'seasonal', season: 'Winter', month: 1 },
+          { message: 'Revisit your financial goals at mid-year to stay on track.', type: 'seasonal', season: 'Summer', month: 6 },
+        ];
+        const insert = db.prepare('INSERT INTO wisdom_tips (message, type, season, month) VALUES (@message, @type, @season, @month)');
+        const insertMany = db.transaction((tips) => {
+          for (const tip of tips) insert.run(tip);
+        });
+        insertMany(tips);
+      }
+    };
+
+    // Ensure wisdom_tips table exists in both user and packaged DBs (for dev/packaged scenarios)
+    try {
+      const Database = require('better-sqlite3');
+      const userDb = new Database(userDbPath);
+      migrateWisdomTipsTable(userDb);
+      userDb.close();
+    } catch (e) {
+      // Log but don't crash
+      console.error('Could not migrate wisdom_tips table in userDbPath:', e);
+    }
+    try {
+      const Database = require('better-sqlite3');
+      const packagedDb = new Database(packagedDbPath);
+      migrateWisdomTipsTable(packagedDb);
+      packagedDb.close();
+    } catch (e) {
+      // Log but don't crash
+      console.error('Could not migrate wisdom_tips table in packagedDbPath:', e);
+    }
+    if (!fs.existsSync(userDataDir)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+    }
+    if (!fs.existsSync(userDbPath)) {
+      fs.copyFileSync(packagedDbPath, userDbPath);
+    }
+    const db = new Database(userDbPath, { readonly: true });
+    // Get current month and season
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const seasons = [
+      { name: 'Winter', months: [12, 1, 2] },
+      { name: 'Spring', months: [3, 4, 5] },
+      { name: 'Summer', months: [6, 7, 8] },
+      { name: 'Fall', months: [9, 10, 11] }
+    ];
+    const season = seasons.find(s => s.months.includes(month))?.name;
+    // Query for rules (always show) and relevant seasonal tips
+    const stmt = db.prepare(`SELECT * FROM wisdom_tips WHERE type = 'rule' OR (type = 'seasonal' AND (season = ? OR month = ?))`);
+    const tips = stmt.all(season, month);
+    db.close();
+    return { tips };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 // Handler to get all transactions for a given month (YYYY-MM)
 ipcMain.handle('get-transactions-for-month', async (event, month) => {
   try {
