@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- Behavioral & Contextual Insights: Dashboard Insights tab now includes actionable recommendations based on user habits, timing, preferences, time-of-month, season, and family patterns. Fully theme-aware, modular, and accessible. Uses realistic, $60k/year household test data in the database. **Completed: 2025-12-14**
 - Financial Wisdom & Tips: Added backend IPC handler, database table, and frontend UI to display rule-based and seasonal financial tips in the Dashboard Insights tab. Fully theme-aware, accessible, and integrated with the modular design. Includes realistic, seasonally relevant test data for a ~$60k/year household in the database.
 - Spending pattern alerts on Dashboard: Detects unusual spending patterns by category, provides severity-based alerts, and allows users to dismiss or expand alert details. Alerts are persisted and do not reappear once dismissed. See README.md for usage.
 - Financial Analysis Engine: Aggregates balances, income, expenses, and trends for the last 6 months. Provides AI-powered recommendations and insights in the Dashboard Insights tab. Fully theme-aware, modular, and accessible. Uses realistic test data for a ~$60k/year household in the database.
@@ -10,7 +11,7 @@
 
 ### Fixed
 
----
+----
 # vNEXT
 - Added: Spending Pattern Alerts to Dashboard (Alerts & Warnings tab)
     - Analyzes 4-6 months of transaction data for each category

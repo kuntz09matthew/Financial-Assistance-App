@@ -546,6 +546,100 @@ function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
     });
   }
 
+  // --- Behavioral & Contextual Insights ---
+  // 1. Weekend vs. Weekday Spending Habit
+  const txRows = db.prepare('SELECT date, amount, category FROM transactions WHERE amount < 0 AND date >= date(?, \'-6 months\')').all(now.toISOString().slice(0, 10));
+  let weekendTotal = 0, weekendCount = 0, weekdayTotal = 0, weekdayCount = 0;
+  let paydaySpike = 0, paydaySpikeCount = 0, nonPaydayTotal = 0, nonPaydayCount = 0;
+  let decSpending = 0, decCount = 0, otherMonthTotal = 0, otherMonthCount = 0;
+  let familyGroceryTotal = 0, familyGroceryCount = 0;
+  const paydays = db.prepare('SELECT DISTINCT date FROM transactions WHERE amount > 0 AND date >= date(?, \'-6 months\')').all(now.toISOString().slice(0, 10)).map(r => r.date);
+  for (const tx of txRows) {
+    const d = new Date(tx.date);
+    const day = d.getDay(); // 0=Sun, 6=Sat
+    if (day === 0 || day === 6) {
+      weekendTotal += Math.abs(tx.amount); weekendCount++;
+    } else {
+      weekdayTotal += Math.abs(tx.amount); weekdayCount++;
+    }
+    // Time-of-month: spike after payday (within 2 days)
+    if (paydays.some(pd => Math.abs((new Date(pd) - d) / (1000*60*60*24)) <= 2)) {
+      paydaySpike += Math.abs(tx.amount); paydaySpikeCount++;
+    } else {
+      nonPaydayTotal += Math.abs(tx.amount); nonPaydayCount++;
+    }
+    // Seasonal: December spending
+    if (d.getMonth() === 11) { decSpending += Math.abs(tx.amount); decCount++; }
+    else { otherMonthTotal += Math.abs(tx.amount); otherMonthCount++; }
+    // Family: grocery category
+    if ((tx.category || '').toLowerCase().includes('grocery')) {
+      familyGroceryTotal += Math.abs(tx.amount); familyGroceryCount++;
+    }
+  }
+  // Weekend vs. Weekday
+  if (weekendCount > 10 && weekdayCount > 10) {
+    const avgWeekend = weekendTotal / weekendCount;
+    const avgWeekday = weekdayTotal / weekdayCount;
+    if (avgWeekend > avgWeekday * 1.3) {
+      recommendations.push({
+        title: 'Weekend Spending Habit',
+        message: `You typically spend ${Math.round((avgWeekend/avgWeekday-1)*100)}% more on weekends than weekdays. Consider planning ahead to avoid overspending on weekends.`,
+        priority: 'Medium',
+        impact: 'Medium',
+        timeline: 'Recurring',
+        impactEstimate: Math.round(avgWeekend - avgWeekday),
+        actions: ['Set a weekend budget.', 'Plan low-cost weekend activities.']
+      });
+    }
+  }
+  // Payday spike
+  if (paydaySpikeCount > 5 && nonPaydayCount > 10) {
+    const avgPayday = paydaySpike / paydaySpikeCount;
+    const avgNonPayday = nonPaydayTotal / nonPaydayCount;
+    if (avgPayday > avgNonPayday * 1.3) {
+      recommendations.push({
+        title: 'Spending Spike After Payday',
+        message: `Spending increases by ${Math.round((avgPayday/avgNonPayday-1)*100)}% in the days right after payday. Try to pace your spending throughout the month.`,
+        priority: 'Medium',
+        impact: 'Medium',
+        timeline: 'After Payday',
+        impactEstimate: Math.round(avgPayday - avgNonPayday),
+        actions: ['Delay large purchases until later in the month.', 'Review your post-payday expenses.']
+      });
+    }
+  }
+  // December/seasonal spike
+  if (decCount > 5 && otherMonthCount > 10) {
+    const avgDec = decSpending / decCount;
+    const avgOther = otherMonthTotal / otherMonthCount;
+    if (avgDec > avgOther * 1.3) {
+      recommendations.push({
+        title: 'Seasonal Spending: December',
+        message: `Your average spending in December is ${Math.round((avgDec/avgOther-1)*100)}% higher than other months. Plan ahead for holiday expenses.`,
+        priority: 'Medium',
+        impact: 'Medium',
+        timeline: 'December',
+        impactEstimate: Math.round(avgDec - avgOther),
+        actions: ['Start a holiday fund early.', 'Track December expenses closely.']
+      });
+    }
+  }
+  // Family grocery trend
+  if (familyGroceryCount > 10) {
+    const avgGrocery = familyGroceryTotal / familyGroceryCount;
+    if (avgGrocery > 150) {
+      recommendations.push({
+        title: 'Family Grocery Spending',
+        message: `Your average grocery transaction is $${avgGrocery.toFixed(2)}. Consider meal planning or bulk buying to save.`,
+        priority: 'Low',
+        impact: 'Low',
+        timeline: 'Ongoing',
+        impactEstimate: Math.round(avgGrocery),
+        actions: ['Try meal planning.', 'Look for grocery deals and coupons.']
+      });
+    }
+  }
+
   return recommendations;
 }
 

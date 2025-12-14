@@ -311,7 +311,10 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - [✅] Attach actionable steps & impact estimation to each recommendation
   - [✅] Show timeline projections for goals
     - **Completed: 2025-12-14**
-  - [ ] Add behavioral & contextual insights (habits, timing, preferences, time-of-month, season, family)
+  - [✅] Add behavioral & contextual insights (habits, timing, preferences, time-of-month, season, family)
+    - Habits, timing, preferences, time-of-month, season, and family-based insights now appear in Dashboard Insights tab as actionable recommendations.
+    - Fully theme-aware, modular, and accessible. Uses realistic, $60k/year household test data in the database.
+    - **Completed: 2025-12-14**
   - [ ] Implement data completeness tracking (guide users to add missing data)
   - [ ] Build comprehensive UI: summary banner, priority action cards, recommendation cards, positive insights, alerts, tips grid
   - [ ] Ensure responsive design (mobile optimization, touch-friendly)
