@@ -32,12 +32,14 @@ function UpdateProgressModal({ open, status, message, theme, onClose }) {
 }
 import { lightTheme, darkTheme } from './theme';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+
 import AppNav from './AppNav';
 import DashboardPage from './DashboardPage';
 import BillsPage from './BillsPage';
 import ErrorBoundary from '../components/ErrorBoundary.jsx';
 import UpdateHelp from '../components/UpdateHelp.jsx';
 import MonthDetailModal from './MonthDetailModal';
+import FinancialGoalsPage from './FinancialGoalsPage';
 
 // Simple bar chart for month-over-month comparison
 export function MonthComparisonChart({ data, theme, onMonthClick }) {
@@ -477,6 +479,11 @@ function App() {
                   isDarkMode={isDarkMode}
                   /* billReminders and billRemindersError removed: Upcoming Bills now in Dashboard Alerts & Warnings */
                 />
+              } />
+              <Route path="/goals" element={
+                <React.Suspense fallback={<div>Loading...</div>}>
+                  <FinancialGoalsPage theme={theme} />
+                </React.Suspense>
               } />
             </Routes>
           </section>

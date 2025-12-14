@@ -309,7 +309,8 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - [✅] Add positive insights & celebrations (milestones, good pace, automation, surplus)
   - [✅] Provide financial wisdom & tips (rules, seasonal advice)
   - [✅] Attach actionable steps & impact estimation to each recommendation
-  - [ ] Show timeline projections for goals
+  - [✅] Show timeline projections for goals
+    - **Completed: 2025-12-14**
   - [ ] Add behavioral & contextual insights (habits, timing, preferences, time-of-month, season, family)
   - [ ] Implement data completeness tracking (guide users to add missing data)
   - [ ] Build comprehensive UI: summary banner, priority action cards, recommendation cards, positive insights, alerts, tips grid

@@ -6,6 +6,28 @@ const fs = require('fs');
 const os = require('os');
 const Database = require('better-sqlite3');
 
+// --- Financial Goals Table Migration ---
+function migrateGoalsTable(db) {
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='goals';").get();
+  if (!tableExists) {
+    db.prepare(`CREATE TABLE IF NOT EXISTS goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL, -- 'savings', 'debt', 'life', etc.
+      target_amount REAL NOT NULL,
+      current_amount REAL NOT NULL DEFAULT 0,
+      start_date TEXT NOT NULL,
+      target_date TEXT,
+      notes TEXT
+    );`).run();
+    // Insert example/test goals (for migration)
+    const insert = db.prepare('INSERT INTO goals (name, type, target_amount, current_amount, start_date, target_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    insert.run('Emergency Fund', 'savings', 9000, 1200, '2025-01-01', '2026-01-01', '3-6 months of expenses');
+    insert.run('Pay Off Credit Card', 'debt', 3500, 500, '2025-06-01', '2026-06-01', 'High interest, pay ASAP');
+    insert.run('Vacation Fund', 'savings', 2500, 400, '2025-03-01', '2025-12-01', 'Family trip to the beach');
+  }
+}
+
 // Handler to get financial wisdom & tips (rules, seasonal advice)
 ipcMain.handle('get-wisdom-tips', async (event) => {
   try {
@@ -52,6 +74,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       const Database = require('better-sqlite3');
       const userDb = new Database(userDbPath);
       migrateWisdomTipsTable(userDb);
+      migrateGoalsTable(userDb);
       userDb.close();
     } catch (e) {
       // Log but don't crash
@@ -61,11 +84,130 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       const Database = require('better-sqlite3');
       const packagedDb = new Database(packagedDbPath);
       migrateWisdomTipsTable(packagedDb);
+      migrateGoalsTable(packagedDb);
       packagedDb.close();
     } catch (e) {
       // Log but don't crash
       console.error('Could not migrate wisdom_tips table in packagedDbPath:', e);
     }
+    // IPC handler to get all goals
+    ipcMain.handle('get-goals', async () => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath, { readonly: true });
+        const stmt = db.prepare('SELECT * FROM goals');
+        const goals = stmt.all();
+        db.close();
+        return { goals };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // IPC handler to add a new goal
+    ipcMain.handle('add-goal', async (event, goal) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath);
+        const insert = db.prepare('INSERT INTO goals (name, type, target_amount, current_amount, start_date, target_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        const result = insert.run(goal.name, goal.type, goal.target_amount, goal.current_amount, goal.start_date, goal.target_date, goal.notes);
+        db.close();
+        return { id: result.lastInsertRowid };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // IPC handler to update a goal's progress
+    ipcMain.handle('update-goal-progress', async (event, { id, current_amount }) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath);
+        const update = db.prepare('UPDATE goals SET current_amount = ? WHERE id = ?');
+        update.run(current_amount, id);
+        db.close();
+        return { success: true };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // IPC handler to calculate timeline projection for a goal
+    ipcMain.handle('get-goal-projection', async (event, goalId) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath, { readonly: true });
+        const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(goalId);
+        if (!goal) {
+          db.close();
+          return { error: 'Goal not found' };
+        }
+        // Estimate monthly contribution rate (simple: (current_amount - start_amount) / months elapsed)
+        const start = new Date(goal.start_date);
+        const now = new Date();
+        const monthsElapsed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+        let monthlyRate = 0;
+        if (monthsElapsed > 0) {
+          monthlyRate = (goal.current_amount) / monthsElapsed;
+        }
+        // Projected months to completion
+        const remaining = goal.target_amount - goal.current_amount;
+        let monthsToComplete = null;
+        let projectedDate = null;
+        if (monthlyRate > 0) {
+          monthsToComplete = Math.ceil(remaining / monthlyRate);
+          const projected = new Date(now);
+          projected.setMonth(projected.getMonth() + monthsToComplete);
+          projectedDate = projected.toISOString().slice(0, 10);
+        }
+        db.close();
+        return {
+          goalId,
+          monthlyRate,
+          monthsToComplete,
+          projectedDate,
+          remaining
+        };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
     if (!fs.existsSync(userDataDir)) {
       fs.mkdirSync(userDataDir, { recursive: true });
     }
