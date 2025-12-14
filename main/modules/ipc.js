@@ -232,6 +232,91 @@ function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
       actions: ['Continue your current habits.', 'Review investment opportunities.']
     });
   }
+  // Emergency Fund Recommendation
+  // Calculate 3-6 months of average expenses
+  const expenseHistory = db.prepare('SELECT amount FROM transactions WHERE amount < 0 AND date >= date(?, \'-6 months\')').all(now.toISOString().slice(0, 10));
+  const monthlyExpenses = [];
+  let monthSum = 0, lastMonth = null;
+  for (const row of expenseHistory) {
+    // Group by month
+    // For simplicity, just sum all expenses in last 6 months
+    monthSum += Math.abs(row.amount);
+  }
+  const avgMonthlyExpenses = expenseHistory.length > 0 ? monthSum / 6 : 0;
+  const emergencyFundTarget = avgMonthlyExpenses * 3;
+  const savingsBalance = balances.filter(acc => acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);
+  if (savingsBalance < emergencyFundTarget && avgMonthlyExpenses > 0) {
+    recommendations.push({
+      title: 'Emergency Fund Below Target',
+      message: `Your emergency fund is below the recommended 3 months of expenses ($${emergencyFundTarget.toLocaleString(undefined, {minimumFractionDigits:2})}). Try to build your savings for better security.`,
+      priority: 'High',
+      impact: 'High',
+      timeline: 'Ongoing',
+      impactEstimate: emergencyFundTarget - savingsBalance,
+      actions: ['Set up automatic transfers to savings.', 'Reduce discretionary spending.', 'Review your budget for savings opportunities.']
+    });
+  }
+
+  // Debt Payoff Recommendation
+  // Find credit card or loan accounts with negative balances
+  const debtAccounts = balances.filter(acc => (acc.type === 'Credit Card' || acc.type === 'Loan') && acc.balance < 0);
+  if (debtAccounts.length > 0) {
+    const totalDebt = debtAccounts.reduce((sum, acc) => sum + Math.abs(acc.balance), 0);
+    recommendations.push({
+      title: 'Debt Payoff Opportunity',
+      message: `You have $${totalDebt.toLocaleString(undefined, {minimumFractionDigits:2})} in outstanding debt. Consider making extra payments to reduce interest costs.`,
+      priority: 'Medium',
+      impact: 'Medium',
+      timeline: 'Ongoing',
+      impactEstimate: totalDebt,
+      actions: ['Make extra payments on high-interest debt.', 'Review your debt payoff plan.', 'Avoid new debt if possible.']
+    });
+  }
+
+  // Savings Optimization Recommendation
+  if (savingsBalance > emergencyFundTarget && totalIncome > 0) {
+    recommendations.push({
+      title: 'Savings Opportunity',
+      message: 'You have savings above your emergency fund target. Consider moving excess funds to a high-yield account or investments.',
+      priority: 'Positive',
+      impact: 'Low',
+      timeline: 'Ongoing',
+      impactEstimate: savingsBalance - emergencyFundTarget,
+      actions: ['Research high-yield savings accounts.', 'Consider investing for long-term growth.']
+    });
+  }
+
+
+  // Spending Control & Category Insights
+  // Find top 1-2 categories with highest spending this month
+  // Use previously declared year, month, firstDay, lastDay
+  const catRows = db.prepare('SELECT category, SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount < 0 GROUP BY category ORDER BY total ASC LIMIT 2').all(firstDay, lastDay);
+  for (const cat of catRows) {
+    recommendations.push({
+      title: `High Spending: ${cat.category}`,
+      message: `You have spent $${Math.abs(cat.total).toLocaleString(undefined, {minimumFractionDigits:2})} on ${cat.category} this month. Consider reviewing this category for savings.`,
+      priority: 'Medium',
+      impact: 'Medium',
+      timeline: 'This Month',
+      impactEstimate: Math.abs(cat.total),
+      actions: ['Set a budget for this category.', 'Track your spending closely.', 'Look for ways to reduce costs.']
+    });
+  }
+
+  // Bill Payment Recommendation (overdue bills)
+  const overdueBills = db.prepare('SELECT id, date, amount, category, description FROM transactions WHERE date < ? AND amount < 0 AND paid = 0').all(today);
+  for (const bill of overdueBills) {
+    recommendations.push({
+      title: `Overdue Bill: ${bill.category}`,
+      message: `A bill for $${Math.abs(bill.amount).toLocaleString(undefined, {minimumFractionDigits:2})} (${bill.description}) was due on ${bill.date} and is still unpaid.`,
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: Math.abs(bill.amount),
+      actions: ['Pay this bill as soon as possible.', 'Contact the biller if you need an extension.']
+    });
+  }
+
   return recommendations;
 }
 

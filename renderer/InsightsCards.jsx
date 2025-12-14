@@ -64,16 +64,25 @@ export function RecommendationCard({ rec, theme }) {
 export function InsightCard({ text, theme }) {
   return (
     <div style={{
-      border: `2px solid ${theme.success}`,
+      border: `2.5px solid ${theme.success}`,
       background: theme.card,
-      borderRadius: 10,
-      boxShadow: `0 1px 8px ${theme.border}`,
-      marginBottom: 12,
-      padding: '0.9rem 1.2rem',
+      borderRadius: 14,
+      boxShadow: `0 2px 16px ${theme.success}33`,
+      marginBottom: 18,
+      padding: '1.1rem 1.5rem',
       color: theme.success,
-      fontWeight: 700,
-      fontSize: '1.05rem',
-    }}>{text}</div>
+      fontWeight: 900,
+      fontSize: '1.13rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      letterSpacing: '0.01em',
+      textShadow: `0 1px 8px ${theme.success}22`,
+      position: 'relative',
+    }}>
+      <span role="img" aria-label="celebrate" style={{fontSize: '1.6em', marginRight: 10}}>🎉</span>
+      <span>{text}</span>
+    </div>
   );
 }
 
