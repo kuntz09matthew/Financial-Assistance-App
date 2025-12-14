@@ -67,12 +67,100 @@ function getTrends(db, now, months = 6) {
   return trends;
 }
 
-function getRecommendations(totalIncome, totalExpenses) {
-  // Returns array of recommendations based on income/expenses
+function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
+  // Returns array of recommendations based on income/expenses, balances, bills, and velocity
   const recommendations = [];
-  // Calculate spending ratio
   const spendingRatio = totalIncome > 0 ? totalExpenses / totalIncome : 1;
-  // Priority assignment logic
+  // Overdraft/insufficient funds check
+  const availableBalance = balances.filter(acc => acc.type === 'Checking' || acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);
+  // 1. Overdraft prevention (projected negative balance)
+  if (availableBalance < 0) {
+    recommendations.push({
+      title: 'Overdraft Risk',
+      message: 'Your available balance is negative. Immediate action is required to avoid overdraft fees.',
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: availableBalance,
+      actions: ['Transfer funds to checking.', 'Reduce spending immediately.', 'Contact your bank if needed.']
+    });
+  } else if (availableBalance < 100) {
+    recommendations.push({
+      title: 'Low Balance Warning',
+      message: 'Your available balance is very low. Monitor your spending to avoid overdraft.',
+      priority: 'High',
+      impact: 'Medium',
+      timeline: 'This Week',
+      impactEstimate: availableBalance,
+      actions: ['Delay non-essential purchases.', 'Review upcoming bills.']
+    });
+  }
+
+  // 2. Insufficient funds for upcoming bills (next 7 days)
+  const today = now.toISOString().slice(0, 10);
+  const sevenDaysLater = new Date(now);
+  sevenDaysLater.setDate(now.getDate() + 7);
+  const sevenDaysStr = sevenDaysLater.toISOString().slice(0, 10);
+  const bills = db.prepare(`SELECT id, date, amount, category, description, paid, auto_pay FROM transactions WHERE date > ? AND date <= ? AND amount < 0 ORDER BY date ASC`).all(today, sevenDaysStr);
+  let totalUpcomingBills = 0;
+  let urgentBills = [];
+  for (const bill of bills) {
+    if (!bill.paid) {
+      totalUpcomingBills += Math.abs(bill.amount);
+      const dueDate = new Date(bill.date);
+      const daysAway = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      if (daysAway <= 2) urgentBills.push(bill);
+    }
+  }
+  if (totalUpcomingBills > 0 && availableBalance < totalUpcomingBills) {
+    recommendations.push({
+      title: 'Insufficient Funds for Bills',
+      message: `You have $${totalUpcomingBills.toLocaleString(undefined, {minimumFractionDigits:2})} in bills due in the next 7 days, but your available balance is only $${availableBalance.toLocaleString(undefined, {minimumFractionDigits:2})}.`,
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Next 7 Days',
+      impactEstimate: availableBalance - totalUpcomingBills,
+      actions: ['Deposit funds ASAP.', 'Contact billers to request extensions.', 'Prioritize essential bills.']
+    });
+  }
+  // 3. Urgent bill alerts (due in 2 days)
+  if (urgentBills.length > 0) {
+    urgentBills.forEach(bill => {
+      recommendations.push({
+        title: `Urgent Bill Due: ${bill.category}`,
+        message: `A bill for $${Math.abs(bill.amount).toLocaleString(undefined, {minimumFractionDigits:2})} (${bill.description}) is due on ${bill.date}.`,
+        priority: 'Urgent',
+        impact: 'High',
+        timeline: 'Within 2 Days',
+        impactEstimate: bill.amount,
+        actions: ['Pay this bill immediately.', 'Set up auto-pay if possible.']
+      });
+    });
+  }
+
+  // 4. Spending velocity and budget overrun
+  // Calculate average daily spending so far this month
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const firstDay = `${year}-${month.toString().padStart(2, '0')}-01`;
+  const lastDay = `${year}-${month.toString().padStart(2, '0')}-31`;
+  const daysElapsed = now.getDate();
+  const avgDailySpending = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const projectedSpending = avgDailySpending * daysInMonth;
+  if (totalIncome > 0 && projectedSpending > totalIncome) {
+    recommendations.push({
+      title: 'Budget Overrun Projected',
+      message: `At your current spending rate ($${avgDailySpending.toLocaleString(undefined, {minimumFractionDigits:2})}/day), you are projected to exceed your income by $${(projectedSpending-totalIncome).toLocaleString(undefined, {minimumFractionDigits:2})} this month.`,
+      priority: 'High',
+      impact: 'High',
+      timeline: 'This Month',
+      impactEstimate: projectedSpending - totalIncome,
+      actions: ['Reduce discretionary spending.', 'Track your daily expenses.', 'Adjust your budget.']
+    });
+  }
+
+  // 5. Standard spending ratio recommendations (existing logic)
   if (totalIncome === 0) {
     recommendations.push({
       title: 'No Income Detected',
@@ -173,7 +261,7 @@ function setupIPC() {
       const totalIncome = getTotalIncome(db, firstDay, lastDay);
       const totalExpenses = getTotalExpenses(db, firstDay, lastDay);
       const trends = getTrends(db, now, 6);
-      const recommendations = getRecommendations(totalIncome, totalExpenses);
+  const recommendations = getRecommendations(db, totalIncome, totalExpenses, balances, now);
 
       db.close();
       return {
