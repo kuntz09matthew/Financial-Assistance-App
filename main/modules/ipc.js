@@ -299,6 +299,42 @@ function getTrends(db, now, months = 6) {
 function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
   // Returns array of recommendations based on income/expenses, balances, bills, and velocity
   const recommendations = [];
+
+  // --- Data Completeness Tracking ---
+  // Check for missing core data: accounts, income, bills, savings, goals
+  const missing = [];
+  // Accounts
+  const accountCount = balances.length;
+  if (accountCount === 0) missing.push('Add at least one account (Checking, Savings, Credit Card, or Loan)');
+  // Income
+  const incomeRows = db.prepare('SELECT COUNT(*) as cnt FROM transactions WHERE amount > 0').get();
+  if (incomeRows.cnt === 0) missing.push('Add at least one income source');
+  // Bills
+  const billRows = db.prepare('SELECT COUNT(*) as cnt FROM transactions WHERE amount < 0').get();
+  if (billRows.cnt === 0) missing.push('Add at least one bill or expense');
+  // Savings
+  const savingsAccounts = balances.filter(acc => acc.type === 'Savings');
+  if (savingsAccounts.length === 0) missing.push('Add a savings account');
+  // Goals
+  let goalsCount = 0;
+  try {
+    const goals = db.prepare('SELECT COUNT(*) as cnt FROM goals').get();
+    goalsCount = goals.cnt;
+  } catch (e) {
+    // Table may not exist yet
+  }
+  if (goalsCount === 0) missing.push('Set up at least one financial goal');
+  if (missing.length > 0) {
+    recommendations.push({
+      title: 'Complete Your Profile',
+      message: 'Some important information is missing. Complete your profile for the best recommendations.',
+      priority: 'Critical',
+      impact: 'High',
+      timeline: 'Immediate',
+      impactEstimate: 0,
+      actions: missing
+    });
+  }
   const spendingRatio = totalIncome > 0 ? totalExpenses / totalIncome : 1;
   // Overdraft/insufficient funds check
   const availableBalance = balances.filter(acc => acc.type === 'Checking' || acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);
