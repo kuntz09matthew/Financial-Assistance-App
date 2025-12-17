@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBoundary from '../components/ErrorBoundary.jsx';
 // Update progress modal
 function UpdateProgressModal({ open, status, message, theme, onClose }) {
   if (!open) return null;
@@ -31,23 +32,46 @@ function UpdateProgressModal({ open, status, message, theme, onClose }) {
   );
 }
 import { lightTheme, darkTheme } from './theme';
+import AppNav from './AppNav.jsx';
+import DashboardPage from './DashboardPage.jsx';
+import BillsPage from './BillsPage.jsx';
+import FinancialGoalsPage from './FinancialGoalsPage.jsx';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 
-import AppNav from './AppNav';
-import DashboardPage from './DashboardPage';
-import BillsPage from './BillsPage';
-import ErrorBoundary from '../components/ErrorBoundary.jsx';
-import UpdateHelp from '../components/UpdateHelp.jsx';
-import MonthDetailModal from './MonthDetailModal';
-import FinancialGoalsPage from './FinancialGoalsPage';
+
+import ChartExplanationAccordion from './ChartExplanationAccordion.jsx';
 
 // Simple bar chart for month-over-month comparison
 export function MonthComparisonChart({ data, theme, onMonthClick }) {
   if (!data || data.length === 0) return null;
   const max = Math.max(...data.map(d => Math.max(d.totalIncome, d.totalSpending)));
+  // Simple analysis for explanation
+  const first = data[0];
+  const last = data[data.length - 1];
+  const netNegative = last.netSavings < 0;
+  let explanation = '';
+  if (netNegative) {
+    explanation = `In the most recent month, your expenses exceeded your income, resulting in negative net savings. This is a sign to review your spending and make adjustments.`;
+  } else {
+    explanation = `Your net savings have remained positive. Keep monitoring your income and expenses to maintain this trend.`;
+  }
   return (
     <div style={{ margin: '2rem 0', padding: '1.5rem', background: theme.background, borderRadius: '12px', boxShadow: `0 2px 8px ${theme.border}` }}>
       <h4 style={{ color: theme.accent, marginBottom: '1rem', textAlign: 'center', fontWeight: 700 }}>Month-over-Month Comparison</h4>
+      <ChartExplanationAccordion
+        title="What does this chart mean?"
+        details={
+          <>
+            <ul style={{ marginBottom: 8 }}>
+              <li><b>Green bars</b> show your total income for each month.</li>
+              <li><b>Red bars</b> show your total spending for each month.</li>
+              <li><b>Net</b> is your income minus spending for each month.</li>
+            </ul>
+            <div>{explanation}</div>
+          </>
+        }
+        theme={theme}
+      />
       <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', alignItems: 'flex-end', minHeight: 180 }}>
         {data.map((d, i) => (
           <div key={d.month} style={{ cursor: onMonthClick ? 'pointer' : 'default', flex: 1, minWidth: 40 }} onClick={() => onMonthClick && onMonthClick(d.month)}>

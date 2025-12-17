@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import ChartExplanationAccordion from './ChartExplanationAccordion.jsx';
 import DashboardCard from './DashboardCard';
 import MonthDetailModal from './MonthDetailModal';
 import { ProjectedBalanceModal, MonthComparisonChart } from './App.jsx';
+import TrendChart from './TrendChart.jsx';
 import BillReminders from './BillReminders';
 import PatternAlerts from './PatternAlerts';
 import { RecommendationCard } from './InsightsCards';
@@ -607,6 +609,12 @@ export default function DashboardPage(props) {
                ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon="savingsNet" theme={theme} />
             </div>
           </div>
+
+
+          {/* 6-Month Trend & Predictive Analytics Section */}
+          {analysis && analysis.trends && analysis.trends.length > 0 && (
+            <TrendChart trends={analysis.trends} theme={theme} />
+          )}
 
           {/* Month-over-Month Comparison Section */}
           <div style={{ marginBottom: '2rem' }}>
