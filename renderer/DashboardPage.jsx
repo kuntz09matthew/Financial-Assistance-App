@@ -277,57 +277,102 @@ export default function DashboardPage(props) {
       ) : dashboardTab === 'insights' ? (
         <div style={{ color: theme.subtext, textAlign: 'center', marginTop: '2rem' }}>
           <h2 style={{ color: theme.text, fontWeight: 700, fontSize: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>Insights</h2>
-          {/* Wisdom & Tips Section */}
-          <div style={{ maxWidth: 600, margin: '0 auto 2.5rem auto', textAlign: 'left' }}>
-            <AccordionSection
-              title="Financial Wisdom & Tips"
-              theme={theme}
-              defaultCollapsed={true}
-            >
-              {wisdomTipsError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {wisdomTipsError}</div>}
-              {wisdomTips === null && !wisdomTipsError && (
-                <div style={{ color: theme.subtext, marginTop: 8 }}>Loading tips...</div>
-              )}
-              {wisdomTips && wisdomTips.length > 0 && (
-                <div>
-                  {/* Group by type for better clarity */}
-                  {['rule', 'seasonal'].map(type => (
-                    wisdomTips.filter(tip => tip.type === type).length > 0 && (
-                      <div key={type} style={{ marginBottom: 12 }}>
-                        <div style={{ fontWeight: 700, color: theme.accent, marginBottom: 4, fontSize: '1.08rem' }}>
-                          {type === 'rule' ? 'General Rules' : 'Seasonal & Timely Advice'}
-                        </div>
-                        {wisdomTips.filter(tip => tip.type === type).map((tip, i) => (
-                          <TipCard
-                            key={i}
-                            text={tip.message}
-                            type={tip.type}
-                            season={tip.season}
-                            month={tip.month}
-                            theme={theme}
-                          />
-                        ))}
-                      </div>
-                    )
-                  ))}
-                </div>
-              )}
-              {wisdomTips && wisdomTips.length === 0 && (
-                <div style={{ color: theme.success, marginTop: 12 }}>No tips at this time.</div>
-              )}
-            </AccordionSection>
-          </div>
-          {/* Existing Recommendations Section */}
-          {analysisError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {analysisError}</div>}
-          {analysis === null && !analysisError && (
-            <div style={{ color: theme.subtext, marginTop: 8 }}>Loading recommendations...</div>
-          )}
+          {/* --- Summary Banner --- */}
           {analysis && analysis.recommendations && analysis.recommendations.length > 0 && (
-            <InsightsGroupedSection analysis={analysis} theme={theme} />
+            <div style={{
+              background: theme.card,
+              border: `3px solid ${theme.accent}`,
+              borderRadius: 18,
+              boxShadow: `0 4px 24px ${theme.accent}33`,
+              color: theme.text,
+              fontWeight: 800,
+              fontSize: '1.18rem',
+              margin: '0 auto 2.2rem auto',
+              maxWidth: 700,
+              padding: '1.3rem 2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              letterSpacing: '0.01em',
+              textAlign: 'center',
+              position: 'relative',
+            }}>
+              <span style={{ fontSize: '2.1rem', color: theme.accent, marginBottom: 8 }}>💡</span>
+              <span>
+                {analysis.recommendations[0].title}: {analysis.recommendations[0].message}
+              </span>
+              {analysis.recommendations[0].actions && analysis.recommendations[0].actions.length > 0 && (
+                <ul style={{ margin: '0.7em auto 0 auto', color: theme.accent, fontWeight: 600, fontSize: '1.01rem', textAlign: 'left', maxWidth: 500 }}>
+                  {analysis.recommendations[0].actions.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              )}
+            </div>
           )}
-          {analysis && analysis.recommendations && analysis.recommendations.length === 0 && (
-            <div style={{ color: theme.success, marginTop: 12 }}>No recommendations at this time. Your finances look great!</div>
-          )}
+          {/* --- Wisdom & Tips Section --- */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '2rem',
+            maxWidth: 1200,
+            margin: '0 auto 2.5rem auto',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            textAlign: 'left',
+          }}>
+            <div>
+              <AccordionSection
+                title="Financial Wisdom & Tips"
+                theme={theme}
+                defaultCollapsed={true}
+              >
+                {wisdomTipsError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {wisdomTipsError}</div>}
+                {wisdomTips === null && !wisdomTipsError && (
+                  <div style={{ color: theme.subtext, marginTop: 8 }}>Loading tips...</div>
+                )}
+                {wisdomTips && wisdomTips.length > 0 && (
+                  <div>
+                    {/* Group by type for better clarity */}
+                    {['rule', 'seasonal'].map(type => (
+                      wisdomTips.filter(tip => tip.type === type).length > 0 && (
+                        <div key={type} style={{ marginBottom: 12 }}>
+                          <div style={{ fontWeight: 700, color: theme.accent, marginBottom: 4, fontSize: '1.08rem' }}>
+                            {type === 'rule' ? 'General Rules' : 'Seasonal & Timely Advice'}
+                          </div>
+                          {wisdomTips.filter(tip => tip.type === type).map((tip, i) => (
+                            <TipCard
+                              key={i}
+                              text={tip.message}
+                              type={tip.type}
+                              season={tip.season}
+                              month={tip.month}
+                              theme={theme}
+                            />
+                          ))}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+                {wisdomTips && wisdomTips.length === 0 && (
+                  <div style={{ color: theme.success, marginTop: 12 }}>No tips at this time.</div>
+                )}
+              </AccordionSection>
+            </div>
+            <div>
+              {/* --- Recommendations, Priority Actions, Positive Insights --- */}
+              {analysisError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {analysisError}</div>}
+              {analysis === null && !analysisError && (
+                <div style={{ color: theme.subtext, marginTop: 8 }}>Loading recommendations...</div>
+              )}
+              {analysis && analysis.recommendations && analysis.recommendations.length > 0 && (
+                <InsightsGroupedSection analysis={analysis} theme={theme} />
+              )}
+              {analysis && analysis.recommendations && analysis.recommendations.length === 0 && (
+                <div style={{ color: theme.success, marginTop: 12 }}>No recommendations at this time. Your finances look great!</div>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         <>
