@@ -153,8 +153,8 @@ export default function DashboardPage(props) {
           background: #ff1744 !important;
         }
       `}</style>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', gap: 16 }}>
-        {dashboardTabs.map(tab => (
+      <div className="dashboard-tabs" style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', gap: 16 }}>
+        {(dashboardTabs || []).map(tab => (
           <button
             key={tab.key}
             onClick={() => props.setDashboardTab(tab.key)}
@@ -386,7 +386,7 @@ export default function DashboardPage(props) {
             textShadow: `0 2px 12px ${theme.background}`
           }}>Account Balances</h2>
           {accountsError && <div style={{ color: theme.error, marginBottom: 8, fontWeight: 600, fontSize: '1.1rem', textAlign: 'center' }}>Error: {accountsError}</div>}
-          {accounts && accounts.length > 0 ? (
+          {(accounts || []).length > 0 ? (
             <div style={{
               maxWidth: 700,
               margin: '0 auto 2.5rem auto',
@@ -406,7 +406,7 @@ export default function DashboardPage(props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.map(acc => (
+                  {(accounts || []).map(acc => (
                     <tr key={acc.id} style={{ borderBottom: `1.5px solid ${theme.border}` }}>
                       <td style={{
                         padding: '0.85rem 0.75rem',
@@ -457,7 +457,7 @@ export default function DashboardPage(props) {
           {/* Dashboard Summary Metrics Section */}
           <div style={{ marginTop: '2rem' }}>
             <h3 style={{ color: theme.accent, fontWeight: 700, fontSize: '1.2rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.01em' }}>Summary Metrics</h3>
-            <div style={{
+            <div className="dashboard-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '2rem',
@@ -466,6 +466,7 @@ export default function DashboardPage(props) {
             }}>
               {/* Money Left Per Day Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Money Left Per Day"
                 value={
                   moneyLeftPerDay === null
@@ -496,6 +497,7 @@ export default function DashboardPage(props) {
               </DashboardCard>
               {/* Budget Health Score Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Budget Health Score"
                 value={
                   budgetHealthScore === null
@@ -525,10 +527,11 @@ export default function DashboardPage(props) {
               </DashboardCard>
               {/* Available Spending Money Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Available Spending Money"
-                value={accounts.length === 0 ? 'Loading...' : `$${(() => {
-                  const checking = accounts.filter(acc => acc.type === 'Checking').reduce((sum, acc) => sum + acc.balance, 0);
-                  const savings = accounts.filter(acc => acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);
+                value={(accounts || []).length === 0 ? 'Loading...' : `$${(() => {
+                  const checking = (accounts || []).filter(acc => acc.type === 'Checking').reduce((sum, acc) => sum + acc.balance, 0);
+                  const savings = (accounts || []).filter(acc => acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);
                   return (checking + savings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 })()}`}
                 icon="checking"
@@ -536,20 +539,22 @@ export default function DashboardPage(props) {
               />
               {/* Month-to-Date Spending Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Month-to-Date Spending"
-                value={monthToDateSpending === null ? 'Loading...' : `$${monthToDateSpending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                value={monthToDateSpending == null ? 'Loading...' : `$${Number(monthToDateSpending).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 icon="expenses"
                 theme={theme}
               />
               {/* Spending Velocity Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Spending Velocity"
                 value={
-                  spendingVelocity === null
+                  spendingVelocity == null
                     ? 'Loading...'
                     : spendingVelocity === 'Error'
                     ? 'Error'
-                    : `$${spendingVelocity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day`
+                    : `$${Number(spendingVelocity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / day`
                 }
                 icon="trending_down"
                 theme={theme}
@@ -562,6 +567,7 @@ export default function DashboardPage(props) {
               </DashboardCard>
               {/* Days Until Next Paycheck Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Days Until Next Paycheck"
                 value={daysUntilNextPaycheck === null ? 'Loading...' : daysUntilNextPaycheck}
                 icon="total"
@@ -569,8 +575,9 @@ export default function DashboardPage(props) {
               />
               {/* Total Monthly Income Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Total Monthly Income"
-                value={`$${income
+                value={`$${(income || [])
                   .reduce((sum, i) => sum + (i.frequency === 'Annual' ? i.amount / 12 : i.amount), 0)
                   .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 icon="total"
@@ -578,8 +585,9 @@ export default function DashboardPage(props) {
               />
               {/* Total Fixed Expenses Card */}
               <DashboardCard
+                className="dashboard-card"
                 label="Total Fixed Expenses"
-                value={`$${expenses
+                value={`$${(expenses || [])
                   .filter(e => e.type === 'Fixed')
                   .reduce((sum, e) => sum + e.amount, 0)
                   .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -589,13 +597,13 @@ export default function DashboardPage(props) {
               {/* Total Expenses Card */}
               <DashboardCard
                 label="Total Expenses"
-                value={`$${expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                value={`$${(expenses || []).reduce((sum, e) => sum + e.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 icon="expenses"
                 theme={theme}
               />
               {/* Net Savings Card */}
-              <DashboardCard label="Net Savings" value={`$${(
-                 income.reduce((sum, i) => sum + (i.frequency === 'Annual' ? i.amount / 12 : i.amount), 0) - expenses.reduce((sum, e) => sum + e.amount, 0)
+              <DashboardCard className="dashboard-card" label="Net Savings" value={`$${(
+                 (income || []).reduce((sum, i) => sum + (i.frequency === 'Annual' ? i.amount / 12 : i.amount), 0) - (expenses || []).reduce((sum, e) => sum + e.amount, 0)
                ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon="savingsNet" theme={theme} />
             </div>
           </div>
@@ -603,7 +611,7 @@ export default function DashboardPage(props) {
           {/* Month-over-Month Comparison Section */}
           <div style={{ marginBottom: '2rem' }}>
             {monthlySummaryError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {monthlySummaryError}</div>}
-            {monthlySummary && monthlySummary.length > 0 && <MonthComparisonChart data={monthlySummary} theme={theme} onMonthClick={handleMonthClick} />}
+            {(monthlySummary || []).length > 0 && <MonthComparisonChart data={monthlySummary} theme={theme} onMonthClick={handleMonthClick} />}
           </div>
 
           {/* Month Detail Modal */}

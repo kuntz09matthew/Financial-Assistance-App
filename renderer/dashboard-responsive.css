@@ -1,0 +1,42 @@
+/* Responsive styles for Dashboard and cards */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  justify-content: center;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 0.5rem;
+  }
+  .dashboard-card {
+    min-width: unset !important;
+    min-height: 90px !important;
+    padding: 1rem !important;
+  }
+  .dashboard-tabs {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+}
+
+/* Responsive modal */
+@media (max-width: 600px) {
+  .modal-content {
+    min-width: 90vw !important;
+    max-width: 98vw !important;
+    padding: 1rem !important;
+  }
+}

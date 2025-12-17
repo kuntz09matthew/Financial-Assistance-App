@@ -15,7 +15,7 @@ const iconMap = {
   perday: '📅', // for Money Left Per Day
 };
 
-export default function DashboardCard({ label, value, icon, theme, border, children }) {
+export default function DashboardCard({ label, value, icon, theme, border, children, className }) {
   // Use a brighter shadow for dark mode, subtle for light mode
   const isDark = theme.background === '#181c2a';
   const baseShadow = isDark
@@ -26,6 +26,7 @@ export default function DashboardCard({ label, value, icon, theme, border, child
     : '0 12px 32px 0 rgba(44,44,84,0.22), 0 2px 8px 0 rgba(44,44,84,0.13)';
   return (
     <div
+      className={className}
       style={{
         background: theme.card,
         borderRadius: '18px',
