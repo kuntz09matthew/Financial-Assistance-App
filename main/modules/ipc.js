@@ -28,6 +28,27 @@ function migrateGoalsTable(db) {
   }
 }
 
+// --- Debts Table Migration ---
+function migrateDebtsTable(db) {
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='debts';").get();
+  if (!tableExists) {
+    db.prepare(`CREATE TABLE IF NOT EXISTS debts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL, -- 'credit card', 'loan', etc.
+      balance REAL NOT NULL,
+      apr REAL NOT NULL,
+      min_payment REAL NOT NULL,
+      due_date TEXT,
+      notes TEXT
+    );`).run();
+    // Insert example/test debts (for migration)
+    const insert = db.prepare('INSERT INTO debts (name, type, balance, apr, min_payment, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    insert.run('Visa Card', 'credit card', 3200, 22.99, 85, '2025-12-25', 'Main family credit card');
+    insert.run('Auto Loan', 'loan', 7800, 5.5, 250, '2025-12-20', 'Car loan, 36 months left');
+  }
+}
+
 // Handler to get financial wisdom & tips (rules, seasonal advice)
 ipcMain.handle('get-wisdom-tips', async (event) => {
   try {
@@ -75,6 +96,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       const userDb = new Database(userDbPath);
       migrateWisdomTipsTable(userDb);
       migrateGoalsTable(userDb);
+      migrateDebtsTable(userDb);
       userDb.close();
     } catch (e) {
       // Log but don't crash
@@ -85,11 +107,134 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       const packagedDb = new Database(packagedDbPath);
       migrateWisdomTipsTable(packagedDb);
       migrateGoalsTable(packagedDb);
+      migrateDebtsTable(packagedDb);
       packagedDb.close();
     } catch (e) {
       // Log but don't crash
       console.error('Could not migrate wisdom_tips table in packagedDbPath:', e);
     }
+
+    // --- Debt Management IPC Handlers ---
+    // Get all debts
+    ipcMain.handle('get-debts', async () => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath, { readonly: true });
+        const stmt = db.prepare('SELECT * FROM debts');
+        const debts = stmt.all();
+        db.close();
+        return { debts };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // Add a new debt
+    ipcMain.handle('add-debt', async (event, debt) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath);
+        const insert = db.prepare('INSERT INTO debts (name, type, balance, apr, min_payment, due_date, notes) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        const result = insert.run(debt.name, debt.type, debt.balance, debt.apr, debt.min_payment, debt.due_date, debt.notes);
+        db.close();
+        return { id: result.lastInsertRowid };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // Update a debt
+    ipcMain.handle('update-debt', async (event, { id, ...fields }) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath);
+        const keys = Object.keys(fields);
+        const setClause = keys.map(k => `${k} = ?`).join(', ');
+        const values = keys.map(k => fields[k]);
+        values.push(id);
+        const update = db.prepare(`UPDATE debts SET ${setClause} WHERE id = ?`);
+        update.run(...values);
+        db.close();
+        return { success: true };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // Delete a debt
+    ipcMain.handle('delete-debt', async (event, id) => {
+      try {
+        const appName = 'Financial Assistance App';
+        const userDataDir = path.join(os.homedir(), 'AppData', 'Roaming', appName);
+        const userDbPath = path.join(userDataDir, 'data.db');
+        const packagedDbPath = path.join(__dirname, '../../assets/data.db');
+        if (!fs.existsSync(userDataDir)) {
+          fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        if (!fs.existsSync(userDbPath)) {
+          fs.copyFileSync(packagedDbPath, userDbPath);
+        }
+        const db = new Database(userDbPath);
+        const del = db.prepare('DELETE FROM debts WHERE id = ?');
+        del.run(id);
+        db.close();
+        return { success: true };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
+
+    // Calculate payoff and interest savings for a debt
+    ipcMain.handle('calculate-debt-payoff', async (event, { balance, apr, min_payment, extra_payment = 0 }) => {
+      try {
+        // Simple payoff calculation (amortization)
+        let months = 0;
+        let totalInterest = 0;
+        let currentBalance = balance;
+        const monthlyRate = apr / 100 / 12;
+        const payment = min_payment + extra_payment;
+        if (payment <= currentBalance * monthlyRate) {
+          return { error: 'Payment too low to cover interest.' };
+        }
+        while (currentBalance > 0 && months < 600) { // 50 years max
+          const interest = currentBalance * monthlyRate;
+          totalInterest += interest;
+          currentBalance = currentBalance + interest - payment;
+          if (currentBalance < 0) currentBalance = 0;
+          months++;
+        }
+        return { months, totalInterest: Number(totalInterest.toFixed(2)) };
+      } catch (err) {
+        return { error: err.message };
+      }
+    });
     // IPC handler to get all goals
     ipcMain.handle('get-goals', async () => {
       try {
@@ -403,7 +548,23 @@ function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
     });
   }
 
-  // 4. Spending velocity and budget overrun
+  // 4. Autopay Optimization Recommendation
+  // Find recurring, unpaid, non-autopay bills
+  const recurringBills = db.prepare(`SELECT id, date, amount, category, description, paid, auto_pay, recurrence FROM transactions WHERE amount < 0 AND recurrence IS NOT NULL AND recurrence != '' AND (auto_pay IS NULL OR auto_pay = 0) AND (paid IS NULL OR paid = 0)`).all();
+  if (recurringBills.length > 0) {
+    const billList = recurringBills.map(bill => `${bill.category}: ${bill.description} ($${Math.abs(bill.amount).toLocaleString(undefined, {minimumFractionDigits:2})})`).join(', ');
+    recommendations.push({
+      title: 'Optimize Bill Payments with Autopay',
+      message: `You have ${recurringBills.length} recurring bill(s) not set to autopay: ${billList}. Setting up autopay for these can help avoid late fees and missed payments.`,
+      priority: 'High',
+      impact: 'Medium',
+      timeline: 'This Month',
+      impactEstimate: 0,
+      actions: ['Review these bills and enable autopay for those you trust.', 'Set reminders to monitor your account for successful payments.']
+    });
+  }
+
+  // 5. Spending velocity and budget overrun
   // Calculate average daily spending so far this month
   const year = now.getFullYear();
   const month = now.getMonth() + 1;

@@ -12,6 +12,7 @@ export default function AppNav({ isDarkMode }) {
     { path: '/spending', label: 'Spending' },
     { path: '/savings', label: 'Savings' },
     { path: '/goals', label: 'Financial Goals' },
+    { path: '/debt', label: 'Debt Management' },
     { path: '/reports', label: 'Reports & Analytics' },
     { path: '/settings', label: 'Settings & Profile' },
   ];

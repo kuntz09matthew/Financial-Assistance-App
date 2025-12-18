@@ -38,7 +38,7 @@ import BillsPage from './BillsPage.jsx';
 import FinancialGoalsPage from './FinancialGoalsPage.jsx';
 import SavingsPage from './SavingsPage.jsx';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-
+import DebtManagementPage from './DebtManagementPage.jsx';
 
 import ChartExplanationAccordion from './ChartExplanationAccordion.jsx';
 
@@ -405,7 +405,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <UpdateProgressModal
         open={showUpdateModal && updateStatus !== 'idle'}
         status={updateStatus}
@@ -512,6 +512,9 @@ function App() {
                 <React.Suspense fallback={<div>Loading...</div>}>
                   <FinancialGoalsPage theme={theme} />
                 </React.Suspense>
+              } />
+              <Route path="/debt" element={
+                <DebtManagementPage isDarkMode={isDarkMode} theme={isDarkMode ? darkTheme : lightTheme} />
               } />
             </Routes>
           </section>
