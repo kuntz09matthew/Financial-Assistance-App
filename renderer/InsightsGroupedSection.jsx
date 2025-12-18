@@ -7,7 +7,9 @@ export default function InsightsGroupedSection({ analysis, theme }) {
   const [showAllGroups, setShowAllGroups] = useState({});
   // Group recommendations by priority
   const groups = {};
+  // Exclude top category recommendations (shown in their own section)
   analysis.recommendations.forEach((rec) => {
+    if (rec.title && rec.title.startsWith('Top Spending Category: ')) return;
     const key = rec.priority || 'Other';
     if (!groups[key]) groups[key] = [];
     groups[key].push(rec);
@@ -21,7 +23,12 @@ export default function InsightsGroupedSection({ analysis, theme }) {
         const showAll = !!showAllGroups[priority];
         const displayGroup = showAll ? group : group.slice(0, 3);
         return (
-          <AccordionSection key={priority} title={`${priority} (${group.length})`} theme={theme} defaultCollapsed={priority !== 'Critical' && priority !== 'Urgent'}>
+          <AccordionSection
+            key={priority}
+            title={`${priority} (${group.length})`}
+            theme={theme}
+            defaultCollapsed={true}
+          >
             {displayGroup.map((rec, i) =>
               rec.priority === 'Positive' ? (
                 <InsightCard key={i} text={rec.title + ': ' + rec.message} theme={theme} />
@@ -41,7 +48,11 @@ export default function InsightsGroupedSection({ analysis, theme }) {
                   borderRadius: 8,
                   padding: '0.5rem 1.2rem',
                   fontWeight: 700,
+                  fontSize: '1.01rem',
                   cursor: 'pointer',
+                  outline: 'none',
+                  boxShadow: `0 1px 4px ${theme.border}`,
+                  transition: 'all 0.18s',
                 }}
               >
                 {showAll ? 'Show Less' : `Show All (${group.length})`}

@@ -552,19 +552,56 @@ function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
   }
 
 
-  // Spending Control & Category Insights
-  // Find top 1-2 categories with highest spending this month
-  // Use previously declared year, month, firstDay, lastDay
-  const catRows = db.prepare('SELECT category, SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount < 0 GROUP BY category ORDER BY total ASC LIMIT 2').all(firstDay, lastDay);
+  // Enhanced Category Intelligence: Top 5 Spending Categories & Reduction Strategies
+  // Find top 5 categories with highest spending this month
+  const catRows = db.prepare('SELECT category, SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount < 0 GROUP BY category ORDER BY total ASC LIMIT 5').all(firstDay, lastDay);
+  const categoryTips = {
+    'Groceries': [
+      'Try meal planning and shopping with a list.',
+      'Buy in bulk for non-perishables.',
+      'Use store brands and coupons.'
+    ],
+    'Dining Out': [
+      'Limit restaurant visits to once a week.',
+      'Look for happy hour specials or discounts.',
+      'Try cooking new recipes at home.'
+    ],
+    'Entertainment': [
+      'Review and cancel unused subscriptions.',
+      'Look for free or low-cost local events.',
+      'Bundle streaming services or share with family.'
+    ],
+    'Transportation': [
+      'Carpool or use public transit when possible.',
+      'Plan trips to reduce fuel usage.',
+      'Keep up with vehicle maintenance for efficiency.'
+    ],
+    'Utilities': [
+      'Turn off lights and unplug devices when not in use.',
+      'Adjust thermostat for energy savings.',
+      'Compare providers for better rates.'
+    ],
+    'Shopping': [
+      'Delay non-essential purchases by 24 hours.',
+      'Track sales and use price comparison tools.',
+      'Set a monthly shopping budget.'
+    ],
+    'Other': [
+      'Review these expenses for one-time or recurring charges.',
+      'See if any can be reduced or eliminated.'
+    ]
+  };
   for (const cat of catRows) {
+    const catName = cat.category || 'Other';
+    const tips = categoryTips[catName] || categoryTips['Other'];
     recommendations.push({
-      title: `High Spending: ${cat.category}`,
-      message: `You have spent $${Math.abs(cat.total).toLocaleString(undefined, {minimumFractionDigits:2})} on ${cat.category} this month. Consider reviewing this category for savings.`,
+      title: `Top Spending Category: ${catName}`,
+      message: `You have spent $${Math.abs(cat.total).toLocaleString(undefined, {minimumFractionDigits:2})} on ${catName} this month. Here are some ways to reduce spending in this category:`,
       priority: 'Medium',
       impact: 'Medium',
       timeline: 'This Month',
       impactEstimate: Math.abs(cat.total),
-      actions: ['Set a budget for this category.', 'Track your spending closely.', 'Look for ways to reduce costs.']
+      actions: tips
     });
   }
 

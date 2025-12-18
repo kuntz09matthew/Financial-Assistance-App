@@ -321,8 +321,8 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - [✅] Ensure responsive design (mobile optimization, touch-friendly)
     - **Completed: 2025-12-17**
   - [✅] Add historical trend & predictive analytics (6-month lookback, warnings)
-  - [ ] Implement category intelligence (top categories, reduction strategies)
-  - [ ] Add setup completion guidance (help users complete profile)
+  - [✅] Implement category intelligence (top categories, reduction strategies)
+  - [✅] Add setup completion guidance (help users complete profile)
   - [ ] Track emergency fund progress (3-6 month goal)
   - [ ] Add debt management (credit card tracking, payoff, interest savings)
   - [ ] Recommend autopay optimization (automation for bills)

@@ -1,15 +1,9 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import WrappedApp from './App.jsx';
 
-// Inject dashboard-responsive.css at runtime for responsive styles
-fetch('./dashboard-responsive.css')
-	.then(res => res.text())
-	.then(css => {
-		const style = document.createElement('style');
-		style.textContent = css;
-		document.head.appendChild(style);
-	});
+
+import WrappedApp from './App.jsx';
+import './dashboard-responsive.css';
 
 
 // Dynamically require ipc-test.js if running in Electron

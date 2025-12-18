@@ -362,6 +362,48 @@ export default function DashboardPage(props) {
               </AccordionSection>
             </div>
             <div>
+              {/* --- Top Spending Categories (Category Intelligence) --- */}
+              {analysis && analysis.recommendations && analysis.recommendations.length > 0 && (
+                (() => {
+                  const topCategoryRecs = analysis.recommendations.filter(
+                    rec => rec.title && rec.title.startsWith('Top Spending Category: ')
+                  );
+                  if (topCategoryRecs.length === 0) return null;
+                  return (
+                    <AccordionSection
+                      title="Top Spending Categories & Reduction Strategies"
+                      theme={theme}
+                      defaultCollapsed={true}
+                    >
+                      {topCategoryRecs.map((rec, i) => (
+                        <div key={i} style={{
+                          border: `2.5px solid ${theme.warning}`,
+                          background: theme.card,
+                          borderRadius: 14,
+                          boxShadow: `0 2px 16px ${theme.warning}33`,
+                          marginBottom: 18,
+                          padding: '1.1rem 1.5rem',
+                          color: theme.text,
+                          fontWeight: 700,
+                          fontSize: '1.08rem',
+                          letterSpacing: '0.01em',
+                          textShadow: `0 1px 8px ${theme.warning}22`,
+                        }}>
+                          <div style={{ fontWeight: 800, color: theme.warning, fontSize: '1.13rem', marginBottom: 4 }}>{rec.title.replace('Top Spending Category: ', '')}</div>
+                          <div style={{ fontSize: '1.01rem', marginBottom: 8 }}>{rec.message}</div>
+                          <ul style={{ margin: '0 0 8px 1.2em', color: theme.text }}>
+                            {rec.actions && rec.actions.map((a, j) => <li key={j}>{a}</li>)}
+                          </ul>
+                          <div style={{ fontSize: '0.97rem', color: theme.subtext }}>
+                            <b>Spent:</b> ${Number(rec.impactEstimate).toLocaleString(undefined, { minimumFractionDigits: 2 })} this month
+                          </div>
+                        </div>
+                      ))}
+                    </AccordionSection>
+                  );
+                })()
+              )}
+
               {/* --- Recommendations, Priority Actions, Positive Insights --- */}
               {analysisError && <div style={{ color: theme.error, marginBottom: 8 }}>Error: {analysisError}</div>}
               {analysis === null && !analysisError && (
