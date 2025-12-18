@@ -1,6 +1,6 @@
 # Version
 
-Current version: 1.0.52
+Current version: 1.0.53
 
 - Released 2025-12-18 by ultra-deploy script
 
