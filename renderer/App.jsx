@@ -36,6 +36,7 @@ import AppNav from './AppNav.jsx';
 import DashboardPage from './DashboardPage.jsx';
 import BillsPage from './BillsPage.jsx';
 import FinancialGoalsPage from './FinancialGoalsPage.jsx';
+import SavingsPage from './SavingsPage.jsx';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 
 
@@ -503,6 +504,9 @@ function App() {
                   isDarkMode={isDarkMode}
                   /* billReminders and billRemindersError removed: Upcoming Bills now in Dashboard Alerts & Warnings */
                 />
+              } />
+              <Route path="/savings" element={
+                <SavingsPage isDarkMode={isDarkMode} />
               } />
               <Route path="/goals" element={
                 <React.Suspense fallback={<div>Loading...</div>}>
