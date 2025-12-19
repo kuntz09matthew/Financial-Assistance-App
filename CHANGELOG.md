@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- Expected vs Actual Income Tracking: The Income page now displays a side-by-side comparison of expected vs. actual income for each source, with variance indicators and a payment history modal. Variance is shown as both a percentage and dollar amount. Fully theme-aware, modular, and tested with realistic $60k/year household data. **Completed: 2025-12-19**
 - Account Diversification Suggestions: The Dashboard Insights tab now provides actionable recommendations for missing or underrepresented account types (checking, savings, retirement, investment). Backend logic analyzes user accounts and suggests diversification steps. Fully theme-aware, modular, and tested with realistic $60k/year household data. **Completed: 2025-12-19**
 - Behavioral & Contextual Insights: Dashboard Insights tab now includes actionable recommendations based on user habits, timing, preferences, time-of-month, season, and family patterns. Fully theme-aware, modular, and accessible. Uses realistic, $60k/year household test data in the database. **Completed: 2025-12-14**
 - Financial Wisdom & Tips: Added backend IPC handler, database table, and frontend UI to display rule-based and seasonal financial tips in the Dashboard Insights tab. Fully theme-aware, accessible, and integrated with the modular design. Includes realistic, seasonally relevant test data for a ~$60k/year household in the database.

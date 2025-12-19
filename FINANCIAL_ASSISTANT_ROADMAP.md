@@ -377,15 +377,16 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Rental income 
   - Other income
   - Each type has appropriate icon and display
-  [ ] Frequency settings (weekly, bi-weekly, monthly, annual)
+  [✅] Frequency settings (weekly, bi-weekly, monthly, annual)
   - All 4 frequencies fully supported
   - Automatic monthly equivalent calculation
   - Proper handling in all displays and calculations
-  [ ] Expected vs actual income tracking
+  [✅] Expected vs actual income tracking
   - Compare actual payments to expected amounts
   - Visual variance indicators (above/below)
   - Current month tracking with percentage variance
   - Payment history display
+    - **Completed: 2025-12-19**
   [ ] Tax withholding calculations
   - Federal tax percentage
   - State tax percentage

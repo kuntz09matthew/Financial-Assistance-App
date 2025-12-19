@@ -16,6 +16,7 @@ This repository contains the source code for the Financial Assistance App, an El
 - Modular Electron architecture
 - Auto-deploy and update system
 - Realistic test data for ~$60k/year household
+- Expected vs Actual Income Tracking: See your expected vs. actual income for each source, with variance indicators and payment history, on the Income page.
 - Account diversification suggestions: actionable recommendations for missing or underrepresented account types (checking, savings, retirement, investment) in the Dashboard Insights tab.
 
 ## Setup
