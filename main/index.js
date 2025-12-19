@@ -1,11 +1,27 @@
 
 
 const { app, BrowserWindow, Menu } = require('electron');
+const path = require('path');
+const fs = require('fs');
 const { createMainWindow } = require('./modules/window');
 const { setupIPC } = require('./modules/ipc');
 const { setupAutoUpdater } = require('./modules/updater');
 
 let mainWindow;
+
+// Restore user data if backup exists before app is ready
+app.once('ready', () => {
+  const dbPath = path.join(app.getAppPath(), 'assets', 'data.db');
+  const backupPath = path.join(app.getPath('userData'), 'data.db.bak');
+  if (fs.existsSync(backupPath)) {
+    try {
+      fs.copyFileSync(backupPath, dbPath);
+      fs.unlinkSync(backupPath);
+    } catch (e) {
+      // Optionally log error
+    }
+  }
+});
 
 app.whenReady().then(() => {
   mainWindow = createMainWindow();

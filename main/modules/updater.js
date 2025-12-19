@@ -2,6 +2,10 @@
 const { autoUpdater, dialog } = require('electron-updater');
 const { dialog: electronDialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const app = require('electron').app;
+const dbPath = path.join(app.getAppPath(), 'assets', 'data.db');
+const backupPath = path.join(app.getPath('userData'), 'data.db.bak');
 
 // Configure autoUpdater to use the generic provider and always check the latest release
 const updateConfig = {
@@ -11,6 +15,12 @@ const updateConfig = {
 autoUpdater.setFeedURL(updateConfig);
 
 function setupAutoUpdater() {
+  // Backup data.db before update
+  function backupUserData() {
+    if (fs.existsSync(dbPath)) {
+      fs.copyFileSync(dbPath, backupPath);
+    }
+  }
   autoUpdater.autoDownload = false;
   autoUpdater.checkForUpdates();
 
@@ -34,9 +44,11 @@ function setupAutoUpdater() {
       message: 'Update downloaded. Restart to install?',
       buttons: ['Restart', 'Later']
     }).then(result => {
-      if (result.response === 0) {
-        autoUpdater.quitAndInstall();
-      }
+        if (result.response === 0) {
+          backupUserData();
+          autoUpdater.quitAndInstall();
+          // On next launch, restoreUserData() is called in main/index.js
+        }
     });
   });
 

@@ -12,6 +12,19 @@
   - **Completed: 2024-06-09**
   - See CHANGELOG.md and README.md for details
 # ⚠️ CRITICAL IMPLEMENTATION INSTRUCTIONS
+# Data Migration & Preservation for Updates
+
+## Requirements
+- Ensure user data (assets/data.db) is preserved during app updates.
+- Bundle the latest version of assets/data.db with GitHub releases for new installs.
+- Updater must backup assets/data.db before update and restore it after update.
+- Updater must NOT overwrite an existing user's data.db file during update.
+
+## Implementation Steps
+1. Update updater logic to backup/restore assets/data.db.
+2. Document release process to include latest data.db for new installs.
+3. Test update process to confirm user data is preserved.
+
 
 ### 🏆 Quality Standards - Every Feature Must Be:
 
