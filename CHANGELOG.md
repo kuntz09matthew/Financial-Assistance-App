@@ -283,3 +283,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.59] - 2025-12-19
 #
 
+
+## [1.0.60] - 2025-12-19
+#
+
