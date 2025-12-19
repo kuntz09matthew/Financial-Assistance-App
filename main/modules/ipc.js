@@ -78,6 +78,17 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
     const userDbPath = path.join(userDataDir, 'data.db');
     const packagedDbPath = path.join(__dirname, '../../assets/data.db');
 
+    // Ensure userDbPath exists: if not, copy from packagedDbPath
+    if (!fs.existsSync(userDbPath)) {
+      fs.mkdirSync(userDataDir, { recursive: true });
+      if (fs.existsSync(packagedDbPath)) {
+        fs.copyFileSync(packagedDbPath, userDbPath);
+        console.log('[DB MIGRATION] Copied data.db to userData directory:', userDbPath);
+      } else {
+        console.error('[DB MIGRATION] Packaged data.db not found:', packagedDbPath);
+      }
+    }
+
     // --- Wisdom Tips Table Migration ---
     // Ensure wisdom_tips table exists in userDbPath, create and populate if missing
     const migrateWisdomTipsTable = (db) => {
@@ -140,8 +151,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
   // --- Income Sources IPC Handlers ---
   ipcMain.handle('get-income-sources', async () => {
     try {
-      const dbPath = path.join(__dirname, '../../assets/data.db');
-      const db = new Database(dbPath);
+      const db = new Database(userDbPath);
       const rows = db.prepare('SELECT * FROM income_sources').all();
       db.close();
       return rows;
@@ -152,8 +162,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
 
   ipcMain.handle('add-income-source', async (event, source) => {
     try {
-      const dbPath = path.join(__dirname, '../../assets/data.db');
-      const db = new Database(dbPath);
+      const db = new Database(userDbPath);
       const stmt = db.prepare('INSERT INTO income_sources (name, type, earner, frequency, expected_amount, notes) VALUES (?, ?, ?, ?, ?, ?)');
       const info = stmt.run(source.name, source.type, source.earner, source.frequency, source.expected_amount, source.notes);
       db.close();
@@ -165,8 +174,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
 
   ipcMain.handle('update-income-source', async (event, source) => {
     try {
-      const dbPath = path.join(__dirname, '../../assets/data.db');
-      const db = new Database(dbPath);
+      const db = new Database(userDbPath);
       const stmt = db.prepare('UPDATE income_sources SET name = ?, type = ?, earner = ?, frequency = ?, expected_amount = ?, notes = ? WHERE id = ?');
       stmt.run(source.name, source.type, source.earner, source.frequency, source.expected_amount, source.notes, source.id);
       db.close();
@@ -178,6 +186,15 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
 
   ipcMain.handle('delete-income-source', async (event, id) => {
     try {
+      const db = new Database(userDbPath);
+      const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');
+      stmt.run(id);
+      db.close();
+      return { success: true };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
       const dbPath = path.join(__dirname, '../../assets/data.db');
       const db = new Database(dbPath);
       const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');
