@@ -3,9 +3,6 @@ const { autoUpdater, dialog } = require('electron-updater');
 const { dialog: electronDialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const app = require('electron').app;
-const dbPath = path.join(app.getAppPath(), 'assets', 'data.db');
-const backupPath = path.join(app.getPath('userData'), 'data.db.bak');
 
 // Configure autoUpdater to use the generic provider and always check the latest release
 const updateConfig = {
@@ -15,10 +12,18 @@ const updateConfig = {
 autoUpdater.setFeedURL(updateConfig);
 
 function setupAutoUpdater() {
+  const app = require('electron').app;
+  const dbPath = path.join(app.getAppPath(), 'assets', 'data.db');
+  const backupPath = path.join(app.getPath('userData'), 'data.db.bak');
+  console.log('[Updater] dbPath:', dbPath);
+  console.log('[Updater] backupPath:', backupPath);
   // Backup data.db before update
   function backupUserData() {
     if (fs.existsSync(dbPath)) {
       fs.copyFileSync(dbPath, backupPath);
+      console.log('[Updater] Backed up data.db to', backupPath);
+    } else {
+      console.log('[Updater] data.db not found at', dbPath);
     }
   }
   autoUpdater.autoDownload = false;
