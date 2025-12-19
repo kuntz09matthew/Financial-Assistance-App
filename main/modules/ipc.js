@@ -444,32 +444,6 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
         return { error: err.message };
       }
     });
-    if (!fs.existsSync(userDataDir)) {
-      fs.mkdirSync(userDataDir, { recursive: true });
-    }
-    if (!fs.existsSync(userDbPath)) {
-      fs.copyFileSync(packagedDbPath, userDbPath);
-    }
-    const db = new Database(userDbPath, { readonly: true });
-    // Get current month and season
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const seasons = [
-      { name: 'Winter', months: [12, 1, 2] },
-      { name: 'Spring', months: [3, 4, 5] },
-      { name: 'Summer', months: [6, 7, 8] },
-      { name: 'Fall', months: [9, 10, 11] }
-    ];
-    const season = seasons.find(s => s.months.includes(month))?.name;
-    // Query for rules (always show) and relevant seasonal tips
-    const stmt = db.prepare(`SELECT * FROM wisdom_tips WHERE type = 'rule' OR (type = 'seasonal' AND (season = ? OR month = ?))`);
-    const tips = stmt.all(season, month);
-    db.close();
-    return { tips };
-  } catch (err) {
-    return { error: err.message };
-  }
-});
 
 // Handler to get all transactions for a given month (YYYY-MM)
 ipcMain.handle('get-transactions-for-month', async (event, month) => {
