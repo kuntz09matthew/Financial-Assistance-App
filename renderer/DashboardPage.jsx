@@ -498,9 +498,9 @@ export default function DashboardPage(props) {
             <div style={{ color: theme.subtext, marginBottom: '2rem', textAlign: 'center', fontSize: '1.1rem' }}>No account data available.</div>
           )}
 
-          {/* Dashboard Summary Metrics Section */}
+          {/* Real-Time Metrics Section */}
           <div style={{ marginTop: '2rem' }}>
-            <h3 style={{ color: theme.accent, fontWeight: 700, fontSize: '1.2rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.01em' }}>Summary Metrics</h3>
+            <h2 style={{ color: theme.accent, fontWeight: 800, fontSize: '1.35rem', marginBottom: '1.2rem', textAlign: 'center', letterSpacing: '0.01em' }}>Real-Time Metrics</h2>
             <div className="dashboard-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -522,6 +522,7 @@ export default function DashboardPage(props) {
                 icon="perday"
                 theme={theme}
                 border={`2px solid ${moneyLeftPerDay?.alert ? theme.error : theme.success}`}
+                tooltip="Your safe daily budget: how much you can spend per day for the rest of the month."
               >
                 {moneyLeftPerDay && !moneyLeftPerDayError && (
                   <div style={{ fontSize: '0.95rem', color: theme.subtext, marginTop: '0.5rem' }}>
@@ -602,6 +603,7 @@ export default function DashboardPage(props) {
                 }
                 icon="trending_down"
                 theme={theme}
+                tooltip="Your current average daily spending rate for this month."
               >
                 <div style={{ fontSize: '0.95rem', color: theme.subtext, marginTop: '0.5rem' }}>
                   <span>

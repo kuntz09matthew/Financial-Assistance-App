@@ -480,6 +480,59 @@ function getRecommendations(db, totalIncome, totalExpenses, balances, now) {
       actions: missing
     });
   }
+    // --- Account Diversification Suggestions ---
+    // Analyze account types: Checking, Savings, Credit Card, Loan, Retirement, Investment
+    const accountTypes = balances.map(acc => acc.type);
+    const hasChecking = accountTypes.includes('Checking');
+    const hasSavings = accountTypes.includes('Savings');
+    const hasRetirement = accountTypes.some(type => type.toLowerCase().includes('retirement'));
+    const hasInvestment = accountTypes.some(type => type.toLowerCase().includes('investment'));
+
+    // Suggest adding missing core accounts
+    if (!hasChecking) {
+      recommendations.push({
+        title: 'Add a Checking Account',
+        message: 'A checking account is essential for managing daily transactions and bill payments. Consider adding one for better money management.',
+        priority: 'High',
+        impact: 'High',
+        timeline: 'Immediate',
+        impactEstimate: 0,
+        actions: ['Open a checking account at your preferred bank.']
+      });
+    }
+    if (!hasSavings) {
+      recommendations.push({
+        title: 'Add a Savings Account',
+        message: 'A savings account helps you set aside money for emergencies and future goals. Consider opening a high-yield savings account.',
+        priority: 'High',
+        impact: 'High',
+        timeline: 'Immediate',
+        impactEstimate: 0,
+        actions: ['Open a high-yield savings account.', 'Set up automatic transfers from checking.']
+      });
+    }
+    if (!hasRetirement) {
+      recommendations.push({
+        title: 'Add a Retirement Account',
+        message: 'Retirement accounts (like 401k or IRA) are important for long-term financial security. Consider adding one to start saving for retirement.',
+        priority: 'Medium',
+        impact: 'High',
+        timeline: 'This Year',
+        impactEstimate: 0,
+        actions: ['Open a retirement account (401k, IRA, etc.).', 'Contribute regularly for long-term growth.']
+      });
+    }
+    if (!hasInvestment) {
+      recommendations.push({
+        title: 'Add an Investment Account',
+        message: 'Investment accounts can help grow your wealth over time. Consider opening a brokerage or investment account to diversify your assets.',
+        priority: 'Medium',
+        impact: 'Medium',
+        timeline: 'This Year',
+        impactEstimate: 0,
+        actions: ['Open a brokerage or investment account.', 'Research low-cost index funds or ETFs.']
+      });
+    }
   const spendingRatio = totalIncome > 0 ? totalExpenses / totalIncome : 1;
   // Overdraft/insufficient funds check
   const availableBalance = balances.filter(acc => acc.type === 'Checking' || acc.type === 'Savings').reduce((sum, acc) => sum + acc.balance, 0);

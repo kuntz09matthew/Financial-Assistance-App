@@ -336,8 +336,12 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
       - Frontend displays recommendations in Dashboard Insights tab via modular components.
       - Fully tested with realistic $60k/year household data; no errors found in backend/frontend.
       - Completed: 2024-06-13
-  - [ ] Suggest account diversification (proper account setup)
-  - [ ] Show real-time metrics (daily spending rate, safe daily budget, days remaining, upcoming bills)
+  - [✅] Suggest account diversification (proper account setup)
+    - Backend analyzes user accounts for missing/underrepresented types (checking, savings, retirement, investment)
+    - Actionable suggestions shown in Dashboard Insights tab
+    - Fully theme-aware, modular, and tested with realistic $60k/year household data
+    - **Completed: 2025-12-19**
+  - [✅] Show real-time metrics (daily spending rate, safe daily budget, days remaining, upcoming bills)
   - [ ] Integrate all above into Dashboard Insights tab (priority actions, recommendations, insights, tips)
 
 
