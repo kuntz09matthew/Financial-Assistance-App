@@ -159,147 +159,153 @@ export default function IncomePage() {
   };
 
   return (
-    <div style={{ background: theme.background, borderRadius: '16px', boxShadow: `0 4px 32px ${theme.border}`, padding: '2rem', maxWidth: 1100, margin: '2rem auto', color: theme.text }}>
-      <h2 style={{ color: theme.header, fontWeight: 800, fontSize: '2rem', marginBottom: '1.5rem', letterSpacing: '0.01em' }}>Income Sources</h2>
-      <button
-        onClick={() => openModal()}
-        style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.7rem 1.4rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', marginBottom: '1.5rem', boxShadow: `0 2px 8px ${theme.border}` }}
-      >
-        Add Income Source
-      </button>
-      <div style={{ marginTop: '1rem', background: theme.card, borderRadius: '12px', boxShadow: `0 2px 8px ${theme.border}`, padding: '1.2rem', minHeight: 180, overflowX: 'auto' }}>
-        {sources.length === 0 ? (
-          <p style={{ color: theme.subtext, fontSize: '1.1rem' }}>No income sources found.</p>
-        ) : (
-          <table style={{ minWidth: 900, width: '100%', borderCollapse: 'collapse', fontSize: '0.98rem', tableLayout: 'auto' }}>
-            <thead>
-              <tr style={{ color: theme.header, fontWeight: 700, fontSize: '1rem', background: theme.background }}>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 90 }}>Name</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Type</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Earner</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Frequency</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 80 }}>Expected</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 80 }}>Actual</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 90 }}>Variance</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 90 }}>Monthly Eq.</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 100 }}>Notes</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'center', minWidth: 80 }}>Actions</th>
-                <th style={{ padding: '0.4rem 0.3rem', textAlign: 'center', minWidth: 70 }}>History</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sources.map((src) => {
-                const actual = getActualIncome(src);
-                const expected = getMonthlyEquivalent(src.expected_amount, src.frequency);
-                const variance = getVariance(expected, actual);
-                return (
-                  <tr key={src.id} style={{ borderBottom: `1px solid ${theme.border}` }}>
-                    <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{src.name}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>{renderTypeIcon(src.type)}{src.type.charAt(0).toUpperCase() + src.type.slice(1)}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap' }}>{src.earner}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap' }}>{src.frequency}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', whiteSpace: 'nowrap' }}>${Number(src.expected_amount).toLocaleString()}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', color: theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${actual.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', color: variance.amt < 0 ? theme.error : theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {variance.amt >= 0 ? '+' : ''}${variance.amt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({variance.pct >= 0 ? '+' : ''}{variance.pct.toLocaleString(undefined, { maximumFractionDigits: 1 })}%)
-                    </td>
-                    <td style={{ padding: '0.4rem 0.3rem', color: theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${expected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{src.notes}</td>
-                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <button
-                        onClick={() => openModal(src)}
-                        style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 6, padding: '0.3rem 0.7rem', fontWeight: 600, marginRight: 6, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '0.95em' }}
-                      >Edit</button>
-                      <button
-                        onClick={() => handleDelete(src.id)}
-                        style={{ background: theme.error, color: theme.card, border: 'none', borderRadius: 6, padding: '0.3rem 0.7rem', fontWeight: 600, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '0.95em' }}
-                      >Delete</button>
-                    </td>
-                    <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <button
-                        onClick={() => setSelectedSource(selectedSource === src.id ? null : src.id)}
-                        style={{ background: theme.background, color: theme.accent, border: `1px solid ${theme.accent}`, borderRadius: 6, padding: '0.2rem 0.7rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.95em' }}
-                      >History</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Payment History Modal */}
-      {selectedSource && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.32)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
-          <div style={{ background: theme.card, borderRadius: 16, boxShadow: `0 4px 32px ${theme.border}`, padding: 32, minWidth: 340, maxWidth: 500, color: theme.text, position: 'relative', textAlign: 'center', pointerEvents: 'auto' }}>
-            <h3 style={{ color: theme.header, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8 }}>Payment History</h3>
-            <button onClick={() => setSelectedSource(null)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: theme.error, fontWeight: 700, fontSize: 20, cursor: 'pointer' }}>×</button>
-            <div style={{ marginTop: 16, maxHeight: 320, overflowY: 'auto', textAlign: 'left' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1rem' }}>
-                <thead>
-                  <tr style={{ color: theme.header, fontWeight: 700 }}>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Date</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Amount</th>
-                    <th style={{ padding: '0.5rem', textAlign: 'left' }}>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {incomeTx.filter(tx => {
-                    const src = sources.find(s => s.id === selectedSource);
-                    if (!src) return false;
-                    const desc = (tx.description || '').toLowerCase();
-                    const cat = (tx.category || '').toLowerCase();
-                    return (
-                      desc.includes((src.name || '').toLowerCase()) ||
-                      cat.includes((src.name || '').toLowerCase()) ||
-                      (src.earner && desc.includes(src.earner.toLowerCase()))
-                    );
-                  }).map((tx, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: '0.5rem' }}>{tx.date}</td>
-                      <td style={{ padding: '0.5rem', color: theme.success }}>${Number(tx.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                      <td style={{ padding: '0.5rem' }}>{tx.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+    <>
+      <div style={{ background: theme.background, minHeight: '100vh', color: theme.text }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '2.5rem' }}>
+          <div style={{ maxWidth: 700, width: '100%', background: theme.card, borderRadius: 18, boxShadow: `0 4px 24px ${theme.border}`, border: `2.5px solid ${theme.accent}33`, padding: '2rem 2.5rem', margin: '0 auto', transition: 'box-shadow 0.2s' }}>
+            <h2 style={{ color: theme.header, fontWeight: 900, fontSize: '2.1rem', marginBottom: '1.2rem', textAlign: 'center', letterSpacing: '0.01em', textShadow: `0 2px 12px ${theme.background}` }}>Income Sources</h2>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <button
+                onClick={() => openModal()}
+                style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.7rem 1.4rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', boxShadow: `0 2px 8px ${theme.border}` }}
+              >
+                Add Income Source
+              </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {modalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.32)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
-          <div style={{ background: theme.card, borderRadius: 16, boxShadow: `0 4px 32px ${theme.border}`, padding: 32, minWidth: 320, maxWidth: 400, color: theme.text, position: 'relative', textAlign: 'center', pointerEvents: 'auto' }}>
-            <h3 style={{ color: theme.header, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8 }}>{editing ? 'Edit Income Source' : 'Add Income Source'}</h3>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: 12, pointerEvents: 'auto' }}>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder="Name" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
-              <select name="type" value={form.type} onChange={handleChange} required style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}>
-                <option value="salary">Salary</option>
-                <option value="freelance">Freelance</option>
-                <option value="investment">Investment</option>
-                <option value="rental">Rental</option>
-                <option value="other">Other</option>
-              </select>
-              <input name="earner" value={form.earner} onChange={handleChange} required placeholder="Earner" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
-              <select name="frequency" value={form.frequency} onChange={handleChange} required style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}>
-                <option value="weekly">Weekly</option>
-                <option value="bi-weekly">Bi-Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="annual">Annual</option>
-              </select>
-              <input name="expected_amount" type="number" value={form.expected_amount} onChange={handleChange} required placeholder="Expected Amount" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
-              <input name="notes" value={form.notes} onChange={handleChange} placeholder="Notes" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
-              {error && <div style={{ color: theme.error, fontWeight: 600, marginTop: 4 }}>{error}</div>}
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: 8, pointerEvents: 'auto' }}>
-                <button type="submit" style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' }}>{editing ? 'Update' : 'Add'}</button>
-                <button type="button" onClick={closeModal} style={{ background: theme.border, color: theme.text, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' }}>Cancel</button>
+            <div style={{ width: '100%', maxHeight: 420, overflowY: 'auto', borderRadius: 12, boxShadow: `0 1px 8px ${theme.border}` }}>
+              {sources.length === 0 ? (
+                <p style={{ color: theme.subtext, fontSize: '1.1rem', textAlign: 'center', marginTop: 32 }}>No income sources found.</p>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.98rem', tableLayout: 'auto' }}>
+                  <thead>
+                    <tr style={{ color: theme.header, fontWeight: 700, fontSize: '1rem', background: theme.background }}>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 90 }}>Name</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Type</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Earner</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 70 }}>Frequency</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 80 }}>Expected</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 80 }}>Actual</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 90 }}>Variance</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'right', minWidth: 90 }}>Monthly Eq.</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'left', minWidth: 100 }}>Notes</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'center', minWidth: 80 }}>Actions</th>
+                      <th style={{ padding: '0.4rem 0.3rem', textAlign: 'center', minWidth: 70 }}>History</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sources.map((src) => {
+                      const actual = getActualIncome(src);
+                      const expected = getMonthlyEquivalent(src.expected_amount, src.frequency);
+                      const variance = getVariance(expected, actual);
+                      return (
+                        <tr key={src.id} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                          <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{src.name}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>{renderTypeIcon(src.type)}{src.type.charAt(0).toUpperCase() + src.type.slice(1)}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap' }}>{src.earner}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap' }}>{src.frequency}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', textAlign: 'right', whiteSpace: 'nowrap' }}>${Number(src.expected_amount).toLocaleString()}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', color: theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${actual.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', color: variance.amt < 0 ? theme.error : theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {variance.amt >= 0 ? '+' : ''}${variance.amt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({variance.pct >= 0 ? '+' : ''}{variance.pct.toLocaleString(undefined, { maximumFractionDigits: 1 })}%)}
+                          </td>
+                          <td style={{ padding: '0.4rem 0.3rem', color: theme.success, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap' }}>${expected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{src.notes}</td>
+                          <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <button
+                              onClick={() => openModal(src)}
+                              style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 6, padding: '0.3rem 0.7rem', fontWeight: 600, marginRight: 6, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '0.95em' }}
+                            >Edit</button>
+                            <button
+                              onClick={() => handleDelete(src.id)}
+                              style={{ background: theme.error, color: theme.card, border: 'none', borderRadius: 6, padding: '0.3rem 0.7rem', fontWeight: 600, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '0.95em' }}
+                            >Delete</button>
+                          </td>
+                          <td style={{ padding: '0.4rem 0.3rem', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <button
+                              onClick={() => setSelectedSource(selectedSource === src.id ? null : src.id)}
+                              style={{ background: theme.background, color: theme.accent, border: `1px solid ${theme.accent}`, borderRadius: 6, padding: '0.2rem 0.7rem', fontWeight: 600, cursor: 'pointer', fontSize: '0.95em' }}
+                            >History</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            {/* Payment History Modal */}
+            {selectedSource && (
+              <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.32)', zIndex: 2100, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
+                <div style={{ background: theme.card, borderRadius: 16, boxShadow: `0 4px 32px ${theme.border}`, padding: 32, minWidth: 340, maxWidth: 500, color: theme.text, position: 'relative', textAlign: 'center', pointerEvents: 'auto' }}>
+                  <h3 style={{ color: theme.header, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8 }}>Payment History</h3>
+                  <button onClick={() => setSelectedSource(null)} style={{ position: 'absolute', top: 12, right: 16, background: 'none', border: 'none', color: theme.error, fontWeight: 700, fontSize: 20, cursor: 'pointer' }}>×</button>
+                  <div style={{ marginTop: 16, maxHeight: 320, overflowY: 'auto', textAlign: 'left' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1rem' }}>
+                      <thead>
+                        <tr style={{ color: theme.header, fontWeight: 700 }}>
+                          <th style={{ padding: '0.5rem', textAlign: 'left' }}>Date</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'left' }}>Amount</th>
+                          <th style={{ padding: '0.5rem', textAlign: 'left' }}>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {incomeTx.filter(tx => {
+                          const src = sources.find(s => s.id === selectedSource);
+                          if (!src) return false;
+                          const desc = (tx.description || '').toLowerCase();
+                          const cat = (tx.category || '').toLowerCase();
+                          return (
+                            desc.includes((src.name || '').toLowerCase()) ||
+                            cat.includes((src.name || '').toLowerCase()) ||
+                            (src.earner && desc.includes(src.earner.toLowerCase()))
+                          );
+                        }).map((tx, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '0.5rem' }}>{tx.date}</td>
+                            <td style={{ padding: '0.5rem', color: theme.success }}>${Number(tx.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                            <td style={{ padding: '0.5rem' }}>{tx.description}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </form>
+            )}
+            {modalOpen && (
+              <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.32)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
+                <div style={{ background: theme.card, borderRadius: 16, boxShadow: `0 4px 32px ${theme.border}`, padding: 32, minWidth: 320, maxWidth: 400, color: theme.text, position: 'relative', textAlign: 'center', pointerEvents: 'auto' }}>
+                  <h3 style={{ color: theme.header, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8 }}>{editing ? 'Edit Income Source' : 'Add Income Source'}</h3>
+                  <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: 12, pointerEvents: 'auto' }}>
+                    <input name="name" value={form.name} onChange={handleChange} required placeholder="Name" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    <select name="type" value={form.type} onChange={handleChange} required style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}>
+                      <option value="salary">Salary</option>
+                      <option value="freelance">Freelance</option>
+                      <option value="investment">Investment</option>
+                      <option value="rental">Rental</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <input name="earner" value={form.earner} onChange={handleChange} required placeholder="Earner" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    <select name="frequency" value={form.frequency} onChange={handleChange} required style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}>
+                      <option value="weekly">Weekly</option>
+                      <option value="bi-weekly">Bi-Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                    <input name="expected_amount" type="number" value={form.expected_amount} onChange={handleChange} required placeholder="Expected Amount" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    <input name="notes" value={form.notes} onChange={handleChange} placeholder="Notes" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    {error && <div style={{ color: theme.error, fontWeight: 600, marginTop: 4 }}>{error}</div>}
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: 8, pointerEvents: 'auto' }}>
+                      <button type="submit" style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' }}>{editing ? 'Update' : 'Add'}</button>
+                      <button type="button" onClick={closeModal} style={{ background: theme.border, color: theme.text, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' }}>Cancel</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
