@@ -342,7 +342,9 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
     - Fully theme-aware, modular, and tested with realistic $60k/year household data
     - **Completed: 2025-12-19**
   - [✅] Show real-time metrics (daily spending rate, safe daily budget, days remaining, upcoming bills)
-  - [ ] Integrate all above into Dashboard Insights tab (priority actions, recommendations, insights, tips)
+  - [✅] Integrate all above into Dashboard Insights tab (priority actions, recommendations, insights, tips)
+    - **Completed: 2025-12-19**
+    - See CHANGELOG.md and README.md for details
 
 
 ### 2. **Income Tracking**
@@ -350,11 +352,11 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
 **What Needs to Be Built:**
 
 #### Phase 1: Basic Income Management
-[ ] Add/edit/delete income sources
+ [✅] Add/edit/delete income sources
   - Full CRUD operations with comprehensive modal form
   - Real-time validation and error handling
   - Support for multiple household earners
-  [ ] Income source types:
+  [✅] Income source types:
   - Primary salary 
   - Secondary salary 
   - Freelance/side hustle 

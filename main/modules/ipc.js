@@ -28,6 +28,27 @@ function migrateGoalsTable(db) {
   }
 }
 
+// --- Income Sources Table Migration ---
+function migrateIncomeSourcesTable(db) {
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='income_sources';").get();
+  if (!tableExists) {
+    db.prepare(`CREATE TABLE IF NOT EXISTS income_sources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL, -- 'salary', 'freelance', 'investment', etc.
+      earner TEXT,
+      frequency TEXT NOT NULL, -- 'weekly', 'bi-weekly', 'monthly', 'annual'
+      expected_amount REAL NOT NULL,
+      notes TEXT
+    );`).run();
+    // Insert example/test income sources (for migration)
+    const insert = db.prepare('INSERT INTO income_sources (name, type, earner, frequency, expected_amount, notes) VALUES (?, ?, ?, ?, ?, ?)');
+    insert.run('Primary Salary', 'salary', 'Alex', 'bi-weekly', 1800, 'Main household earner');
+    insert.run('Secondary Salary', 'salary', 'Jamie', 'monthly', 1200, 'Second earner');
+    insert.run('Freelance Work', 'freelance', 'Alex', 'monthly', 400, 'Side income');
+  }
+}
+
 // --- Debts Table Migration ---
 function migrateDebtsTable(db) {
   const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='debts';").get();
@@ -97,6 +118,7 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       migrateWisdomTipsTable(userDb);
       migrateGoalsTable(userDb);
       migrateDebtsTable(userDb);
+        migrateIncomeSourcesTable(userDb);
       userDb.close();
     } catch (e) {
       // Log but don't crash
@@ -108,12 +130,64 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       migrateWisdomTipsTable(packagedDb);
       migrateGoalsTable(packagedDb);
       migrateDebtsTable(packagedDb);
+        migrateIncomeSourcesTable(packagedDb);
       packagedDb.close();
     } catch (e) {
       // Log but don't crash
       console.error('Could not migrate wisdom_tips table in packagedDbPath:', e);
     }
 
+  // --- Income Sources IPC Handlers ---
+  ipcMain.handle('get-income-sources', async () => {
+    try {
+      const dbPath = path.join(__dirname, '../../assets/data.db');
+      const db = new Database(dbPath);
+      const rows = db.prepare('SELECT * FROM income_sources').all();
+      db.close();
+      return rows;
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
+  ipcMain.handle('add-income-source', async (event, source) => {
+    try {
+      const dbPath = path.join(__dirname, '../../assets/data.db');
+      const db = new Database(dbPath);
+      const stmt = db.prepare('INSERT INTO income_sources (name, type, earner, frequency, expected_amount, notes) VALUES (?, ?, ?, ?, ?, ?)');
+      const info = stmt.run(source.name, source.type, source.earner, source.frequency, source.expected_amount, source.notes);
+      db.close();
+      return { id: info.lastInsertRowid };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
+  ipcMain.handle('update-income-source', async (event, source) => {
+    try {
+      const dbPath = path.join(__dirname, '../../assets/data.db');
+      const db = new Database(dbPath);
+      const stmt = db.prepare('UPDATE income_sources SET name = ?, type = ?, earner = ?, frequency = ?, expected_amount = ?, notes = ? WHERE id = ?');
+      stmt.run(source.name, source.type, source.earner, source.frequency, source.expected_amount, source.notes, source.id);
+      db.close();
+      return { success: true };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
+  ipcMain.handle('delete-income-source', async (event, id) => {
+    try {
+      const dbPath = path.join(__dirname, '../../assets/data.db');
+      const db = new Database(dbPath);
+      const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');
+      stmt.run(id);
+      db.close();
+      return { success: true };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
     // --- Debt Management IPC Handlers ---
     // Get all debts
     ipcMain.handle('get-debts', async () => {

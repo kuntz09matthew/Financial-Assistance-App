@@ -37,6 +37,7 @@ import DashboardPage from './DashboardPage.jsx';
 import BillsPage from './BillsPage.jsx';
 import FinancialGoalsPage from './FinancialGoalsPage.jsx';
 import SavingsPage from './SavingsPage.jsx';
+import IncomePage from './IncomePage.jsx';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import DebtManagementPage from './DebtManagementPage.jsx';
 
@@ -466,56 +467,57 @@ function App() {
           <AppNav isDarkMode={isDarkMode} />
           <section style={{ flex: 1, background: theme.card, borderRadius: '8px', boxShadow: `0 2px 8px ${theme.border}`, padding: '2rem', maxWidth: '900px', margin: '0 auto', position: 'relative' }}>
             <Routes>
-              <Route path="/" element={
-                <DashboardPage
-                  theme={theme}
-                  isDarkMode={isDarkMode}
-                  accounts={accounts}
-                  accountsError={accountsError}
-                  expenses={expenses}
-                  income={income}
-                  daysUntilNextPaycheck={daysUntilNextPaycheck}
-                  nextPaycheckDate={nextPaycheckDate}
-                  budgetHealthScore={budgetHealthScore}
-                  monthToDateSpending={monthToDateSpending}
-                  spendingVelocity={spendingVelocity}
-                  monthlySummary={monthlySummary}
-                  monthlySummaryError={monthlySummaryError}
-                  modalOpen={modalOpen}
-                  setModalOpen={setModalOpen}
-                  selectedMonth={selectedMonth}
-                  setSelectedMonth={setSelectedMonth}
-                  monthTransactions={monthTransactions}
-                  setMonthTransactions={setMonthTransactions}
-                  handleMonthClick={handleMonthClick}
-                  projectedBalanceData={projectedBalanceData}
-                  projectedBalanceError={projectedBalanceError}
-                  projectedModalOpen={projectedModalOpen}
-                  setProjectedModalOpen={setProjectedModalOpen}
-                  dashboardTab={dashboardTab}
-                  setDashboardTab={setDashboardTab}
-                  billReminders={billReminders}
-                  billRemindersError={billRemindersError}
-                />
-              } />
-              <Route path="/bills" element={
-                <BillsPage
-                  theme={theme}
-                  isDarkMode={isDarkMode}
-                  /* billReminders and billRemindersError removed: Upcoming Bills now in Dashboard Alerts & Warnings */
-                />
-              } />
-              <Route path="/savings" element={
-                <SavingsPage isDarkMode={isDarkMode} />
-              } />
-              <Route path="/goals" element={
-                <React.Suspense fallback={<div>Loading...</div>}>
-                  <FinancialGoalsPage theme={theme} />
-                </React.Suspense>
-              } />
-              <Route path="/debt" element={
-                <DebtManagementPage isDarkMode={isDarkMode} theme={isDarkMode ? darkTheme : lightTheme} />
-              } />
+                <Route path="/" element={
+                  <DashboardPage
+                    theme={theme}
+                    isDarkMode={isDarkMode}
+                    accounts={accounts}
+                    accountsError={accountsError}
+                    expenses={expenses}
+                    income={income}
+                    daysUntilNextPaycheck={daysUntilNextPaycheck}
+                    nextPaycheckDate={nextPaycheckDate}
+                    budgetHealthScore={budgetHealthScore}
+                    monthToDateSpending={monthToDateSpending}
+                    spendingVelocity={spendingVelocity}
+                    monthlySummary={monthlySummary}
+                    monthlySummaryError={monthlySummaryError}
+                    modalOpen={modalOpen}
+                    setModalOpen={setModalOpen}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    monthTransactions={monthTransactions}
+                    setMonthTransactions={setMonthTransactions}
+                    handleMonthClick={handleMonthClick}
+                    projectedBalanceData={projectedBalanceData}
+                    projectedBalanceError={projectedBalanceError}
+                    projectedModalOpen={projectedModalOpen}
+                    setProjectedModalOpen={setProjectedModalOpen}
+                    dashboardTab={dashboardTab}
+                    setDashboardTab={setDashboardTab}
+                    billReminders={billReminders}
+                    billRemindersError={billRemindersError}
+                  />
+                } />
+                <Route path="/income" element={<IncomePage />} />
+                <Route path="/bills" element={
+                  <BillsPage
+                    theme={theme}
+                    isDarkMode={isDarkMode}
+                    /* billReminders and billRemindersError removed: Upcoming Bills now in Dashboard Alerts & Warnings */
+                  />
+                } />
+                <Route path="/savings" element={
+                  <SavingsPage isDarkMode={isDarkMode} />
+                } />
+                <Route path="/goals" element={
+                  <React.Suspense fallback={<div>Loading...</div>}>
+                    <FinancialGoalsPage theme={theme} />
+                  </React.Suspense>
+                } />
+                <Route path="/debt" element={
+                  <DebtManagementPage isDarkMode={isDarkMode} theme={isDarkMode ? darkTheme : lightTheme} />
+                } />
             </Routes>
           </section>
         </div>
