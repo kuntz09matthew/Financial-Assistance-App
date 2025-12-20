@@ -7,7 +7,8 @@ const defaultSource = {
   type: 'salary',
   earner: '',
   frequency: 'monthly',
-  expected_amount: '',
+  entryMode: 'monthly', // 'monthly' or 'perPaycheck'
+  expected_amount: '', // monthly or per-paycheck, depending on entryMode
   notes: '',
   federal_tax: 12,
   state_tax: 5,
@@ -17,6 +18,12 @@ const defaultSource = {
 };
 
 export default function IncomePage({ theme, isDarkMode }) {
+  // Track which breakdowns are expanded
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
+
+  function toggleBreakdown(id) {
+    setExpandedBreakdowns(prev => ({ ...prev, [id]: !prev[id] }));
+  }
 
   // State hooks
   const [sources, setSources] = useState([]);
@@ -33,8 +40,63 @@ export default function IncomePage({ theme, isDarkMode }) {
   const [incomeTx, setIncomeTx] = useState([]);
 
   // Dummy functions for illustration; replace with your actual logic
-  function getActualIncome(src) { return Number(src.expected_amount) || 0; }
-  function getMonthlyEquivalent(amount, freq) { return Number(amount) || 0; }
+  // Calculate per-paycheck and monthly equivalent for any source
+  function getPaycheckAndMonthly(src) {
+    const freq = (src.frequency || '').toLowerCase();
+    const entryMode = src.entryMode || 'monthly';
+    const val = Number(src.expected_amount) || 0;
+    let perPaycheck = 0, monthly = 0;
+    if (entryMode === 'perPaycheck') {
+      perPaycheck = val;
+      switch (freq) {
+        case 'weekly':
+          monthly = perPaycheck * 52 / 12;
+          break;
+        case 'bi-weekly':
+          monthly = perPaycheck * 26 / 12;
+          break;
+        case 'semi-monthly':
+          monthly = perPaycheck * 2;
+          break;
+        case 'annual':
+          monthly = perPaycheck * 1 / 12;
+          break;
+        default:
+          monthly = perPaycheck;
+      }
+    } else {
+      monthly = val;
+      switch (freq) {
+        case 'weekly':
+          perPaycheck = monthly * 12 / 52;
+          break;
+        case 'bi-weekly':
+          perPaycheck = monthly * 12 / 26;
+          break;
+        case 'semi-monthly':
+          perPaycheck = monthly / 2;
+          break;
+        case 'annual':
+          perPaycheck = monthly * 12 / 1;
+          break;
+        default:
+          perPaycheck = monthly;
+      }
+    }
+    return { perPaycheck, monthly };
+  }
+  // Calculate net income and deduction breakdown for a source
+  function getNetBreakdown(src) {
+    const gross = Number(src.expected_amount) || 0;
+    const fed = gross * (Number(src.federal_tax) || 0) / 100;
+    const state = gross * (Number(src.state_tax) || 0) / 100;
+    const ss = gross * (Number(src.social_security) || 0) / 100;
+    const medicare = gross * (Number(src.medicare) || 0) / 100;
+    const other = Number(src.other_deductions) || 0;
+    const total = fed + state + ss + medicare + other;
+    const net = gross - total;
+    return { gross, fed, state, ss, medicare, other, total, net };
+  }
   function getVariance(expected, actual) {
     const amt = actual - expected;
     const pct = expected ? (amt / expected) * 100 : 0;
@@ -124,9 +186,12 @@ export default function IncomePage({ theme, isDarkMode }) {
               ) : (
                 <div className="dashboard-grid" style={{ marginBottom: 8 }}>
                   {sources.map((src) => {
-                    const actual = getActualIncome(src);
-                    const expected = getMonthlyEquivalent(src.expected_amount, src.frequency);
-                    const variance = getVariance(expected, actual);
+                    const { perPaycheck, monthly } = getPaycheckAndMonthly(src);
+                    const actual = perPaycheck; // For now, treat as actual per-paycheck
+                    const expected = monthly;
+                    const variance = getVariance(expected, actual * (src.frequency && src.frequency.toLowerCase() === 'monthly' ? 1 : 1));
+                    const breakdown = getNetBreakdown({ ...src, expected_amount: perPaycheck });
+                    const monthlyNet = getPaycheckAndMonthly({ ...src, expected_amount: breakdown.net }).monthly;
                     return (
                       <div key={src.id} style={{ background: `linear-gradient(135deg, ${theme.card} 80%, ${theme.accent}11 100%)`, borderRadius: 18, boxShadow: `0 2px 16px ${theme.border}`, border: `2px solid ${theme.accent}22`, padding: '1.5rem 1.2rem', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', transition: 'box-shadow 0.2s', marginBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
@@ -137,12 +202,46 @@ export default function IncomePage({ theme, isDarkMode }) {
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
-                          <span style={{ fontWeight: 700, color: theme.success, fontSize: '1.13rem' }}>Actual: ${actual.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                          <span style={{ fontSize: '0.99rem', color: variance.amt < 0 ? theme.error : theme.success, fontWeight: 600 }}>
-                            {variance.amt >= 0 ? '+' : ''}{variance.amt.toLocaleString(undefined, { maximumFractionDigits: 2 })} ({variance.pct >= 0 ? '+' : ''}{variance.pct.toLocaleString(undefined, { maximumFractionDigits: 1 })}%)
-                          </span>
-                          <span style={{ fontSize: '0.97rem', color: theme.subtext }}>Monthly Eq: ${expected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span style={{ fontWeight: 700, color: theme.success, fontSize: '1.13rem' }}>Per Paycheck: ${perPaycheck.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span style={{ fontWeight: 700, color: theme.info, fontSize: '1.13rem' }}>Monthly Equivalent: ${monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                         </div>
+                        {/* Collapsible Net Income Breakdown */}
+                        <button
+                          onClick={() => toggleBreakdown(src.id)}
+                          style={{
+                            background: theme.background,
+                            color: theme.info,
+                            border: `1px solid ${theme.info}`,
+                            borderRadius: 8,
+                            padding: '0.4rem 1rem',
+                            fontWeight: 700,
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            marginBottom: 4,
+                            alignSelf: 'flex-start',
+                            boxShadow: `0 1px 4px ${theme.border}22`
+                          }}
+                          aria-expanded={!!expandedBreakdowns[src.id]}
+                          aria-controls={`breakdown-${src.id}`}
+                        >
+                          {expandedBreakdowns[src.id] ? 'Hide Net Income Breakdown' : 'Show Net Income Breakdown'}
+                        </button>
+                        {expandedBreakdowns[src.id] && (
+                          <div id={`breakdown-${src.id}`} style={{ marginBottom: 8, color: theme.text, fontSize: '1rem', background: theme.background, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '0.7rem 1rem', boxShadow: `0 1px 4px ${theme.border}22` }}>
+                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Net Income Breakdown</div>
+                            <div style={{ fontSize: '0.98rem', color: theme.text }}>
+                              <b>Gross:</b> ${breakdown.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Federal Tax:</b> -${breakdown.fed.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>State Tax:</b> -${breakdown.state.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Social Security:</b> -${breakdown.ss.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Medicare:</b> -${breakdown.medicare.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Other Deductions:</b> -${breakdown.other.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Total Deductions:</b> -${breakdown.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                              <b>Net Income:</b> <span style={{ color: theme.success }}>${breakdown.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span><br />
+                              <b>Monthly Net Equivalent:</b> <span style={{ color: theme.info }}>${monthlyNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                            </div>
+                          </div>
+                        )}
                         <div style={{ marginBottom: 8, color: theme.subtext, fontSize: '1rem' }}><strong>Notes:</strong> {src.notes || <span style={{ color: theme.error }}>None</span>}</div>
                         <div style={{ marginBottom: 4 }}>
                           <strong style={{ color: theme.header, fontSize: '1.01rem' }}>Payment History:</strong>
@@ -230,10 +329,44 @@ export default function IncomePage({ theme, isDarkMode }) {
                     <select name="frequency" value={form.frequency} onChange={handleChange} required style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}>
                       <option value="weekly">Weekly</option>
                       <option value="bi-weekly">Bi-Weekly</option>
+                      <option value="semi-monthly">Semi-Monthly (2x/month)</option>
                       <option value="monthly">Monthly</option>
                       <option value="annual">Annual</option>
                     </select>
-                    <input name="expected_amount" type="number" value={form.expected_amount} onChange={handleChange} required placeholder="Expected Amount" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    {/* Entry mode toggle */}
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 4 }}>
+                      <label style={{ fontWeight: 600, color: theme.text }}>
+                        <input
+                          type="radio"
+                          name="entryMode"
+                          value="monthly"
+                          checked={form.entryMode === 'monthly'}
+                          onChange={() => setForm(f => ({ ...f, entryMode: 'monthly', expected_amount: '' }))}
+                          style={{ marginRight: 6 }}
+                        />
+                        Enter Monthly Amount
+                      </label>
+                      <label style={{ fontWeight: 600, color: theme.text }}>
+                        <input
+                          type="radio"
+                          name="entryMode"
+                          value="perPaycheck"
+                          checked={form.entryMode === 'perPaycheck'}
+                          onChange={() => setForm(f => ({ ...f, entryMode: 'perPaycheck', expected_amount: '' }))}
+                          style={{ marginRight: 6 }}
+                        />
+                        Enter Per-Paycheck Amount
+                      </label>
+                    </div>
+                    <input
+                      name="expected_amount"
+                      type="number"
+                      value={form.expected_amount}
+                      onChange={handleChange}
+                      required
+                      placeholder={form.entryMode === 'perPaycheck' ? 'Amount Per Paycheck' : 'Monthly Amount'}
+                      style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }}
+                    />
                     <input name="notes" value={form.notes} onChange={handleChange} placeholder="Notes" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, background: theme.background, borderRadius: 8, padding: '0.7rem 1rem', border: `1px solid ${theme.border}` }}>
                       <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Tax Withholding</div>

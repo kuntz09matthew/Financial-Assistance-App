@@ -394,12 +394,13 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Medicare (1.45% default)
   - Other deductions (health insurance, 401k, etc.)
   - Real-time calculator in form
-  [ ] Net income calculator (after taxes/deductions)
+  [✅] Net income calculator (after taxes/deductions)
   - Comprehensive breakdown display
   - Shows gross, all deductions, and net
   - Monthly net equivalent for all frequencies
   - Visual indicators for deduction impact
   - Detailed deduction breakdown per source
+    - **Completed: 2025-12-20**
 
 #### Phase 2: Advanced Features
 [ ] Multiple income earners in household
@@ -430,8 +431,8 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Beautiful gradient summary banners and theme-aware design
   - Empty states with helpful guidance and info modal
   - Responsive mobile-optimized layout
-  - Backend `/api/income/<id>/variable-analysis` endpoint with comprehensive analytics
-  - Test data includes multi-year variable income history (2023-2025)
+  - Backend endpoint with comprehensive analytics
+  - Test data includes multi-year variable income history (i.e. 2023-2025)
   [ ] Income trend charts
   - Total income over time line chart with gradient fill
   - Income by source stacked area chart
