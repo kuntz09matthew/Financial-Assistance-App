@@ -308,3 +308,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.65] - 2025-12-20
 #
 
+
+## [1.0.66] - 2025-12-20
+#
+
