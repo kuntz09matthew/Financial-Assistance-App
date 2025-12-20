@@ -6,6 +6,18 @@ const fs = require('fs');
 const os = require('os');
 const Database = require('better-sqlite3');
 
+// Handler to get all income transactions (amount > 0)
+ipcMain.handle('get-income-transactions', async () => {
+  try {
+    const db = new Database(userDbPath);
+    const rows = db.prepare('SELECT date, amount, category, description FROM transactions WHERE amount > 0 ORDER BY date DESC').all();
+    db.close();
+    return rows;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
 // --- Financial Goals Table Migration ---
 function migrateGoalsTable(db) {
   const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='goals';").get();
@@ -195,6 +207,61 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
       return { error: e.message };
     }
   });
+  
+    // --- Earner Statistics IPC Handler ---
+    ipcMain.handle('get-earner-statistics', async () => {
+      try {
+        const db = new Database(userDbPath);
+        const sources = db.prepare('SELECT * FROM income_sources').all();
+        db.close();
+        if (!sources.length) return [];
+        // Aggregate by earner
+        const earners = {};
+        let householdGross = 0;
+        let householdNet = 0;
+        sources.forEach(src => {
+          const gross = Number(src.expected_amount) || 0;
+          // Estimate net using default or stored tax/deduction fields if present
+          let net = gross;
+          if ('federal_tax' in src && 'state_tax' in src && 'social_security' in src && 'medicare' in src && 'other_deductions' in src) {
+            const fed = gross * (Number(src.federal_tax) || 0) / 100;
+            const state = gross * (Number(src.state_tax) || 0) / 100;
+            const ss = gross * (Number(src.social_security) || 0) / 100;
+            const medicare = gross * (Number(src.medicare) || 0) / 100;
+            const other = Number(src.other_deductions) || 0;
+            net = gross - (fed + state + ss + medicare + other);
+          }
+          householdGross += gross;
+          householdNet += net;
+          const earner = src.earner || 'Unassigned';
+          if (!earners[earner]) {
+            earners[earner] = {
+              earner,
+              sources: [],
+              gross: 0,
+              net: 0,
+              count: 0
+            };
+          }
+          earners[earner].sources.push(src);
+          earners[earner].gross += gross;
+          earners[earner].net += net;
+          earners[earner].count += 1;
+        });
+        // Calculate contribution percentages
+        Object.values(earners).forEach(e => {
+          e.grossPct = householdGross ? (e.gross / householdGross) * 100 : 0;
+          e.netPct = householdNet ? (e.net / householdNet) * 100 : 0;
+        });
+        return {
+          householdGross,
+          householdNet,
+          earners: Object.values(earners)
+        };
+      } catch (e) {
+        return { error: e.message };
+      }
+    });
       const dbPath = path.join(__dirname, '../../assets/data.db');
       const db = new Database(dbPath);
       const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');

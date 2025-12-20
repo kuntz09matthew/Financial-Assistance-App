@@ -403,7 +403,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
     - **Completed: 2025-12-20**
 
 #### Phase 2: Advanced Features
-[ ] Multiple income earners in household
+[✅] Multiple income earners in household
   - Enhanced backend API with comprehensive earner statistics (gross/net totals, source counts, contribution percentages)
   - New "By Earner" sub-tab in Income section displaying individual earner cards
   - Visual contribution bars showing each earner's percentage of household income
@@ -413,6 +413,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Responsive design for mobile devices
   - Realistic test data for ~$60k/year household with two earners
   - Full integration with existing income tracking features
+  - **Completed: 2025-12-20**
   [ ] Variable income tracking (for commission/freelance)
   - Auto-detection of variable income types (freelance, investment, other)
   - Real-time average calculation from payment history

@@ -32,12 +32,12 @@ export default function IncomePage({ theme, isDarkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...defaultSource });
-  const [withholding, setWithholding] = useState({
-    total: 0,
-    net: 0
-  });
+  const [withholding, setWithholding] = useState({ total: 0, net: 0 });
   const [error, setError] = useState('');
   const [incomeTx, setIncomeTx] = useState([]);
+  // New: Earner statistics and tab state
+  const [earnerStats, setEarnerStats] = useState(null);
+  const [tab, setTab] = useState('sources'); // 'sources' or 'earners'
 
   // Dummy functions for illustration; replace with your actual logic
   // Calculate per-paycheck and monthly equivalent for any source
@@ -155,14 +155,16 @@ export default function IncomePage({ theme, isDarkMode }) {
     setSources(sources.filter(s => s.id !== id));
   }
 
-  // Fetch sources and incomeTx on mount using Electron API
+  // Fetch sources, incomeTx, and earner stats on mount
   useEffect(() => {
-    // Use invoke for IPC calls as defined in preload.js
     window.electronAPI.invoke('get-income-sources').then((data) => {
       setSources(Array.isArray(data) ? data : []);
     });
     window.electronAPI.invoke('get-income-transactions').then((tx) => {
       setIncomeTx(Array.isArray(tx) ? tx : []);
+    });
+    window.electronAPI.invoke('get-earner-statistics').then((stats) => {
+      setEarnerStats(stats && !stats.error ? stats : null);
     });
   }, []);
 
@@ -170,126 +172,185 @@ export default function IncomePage({ theme, isDarkMode }) {
     <>
       <div style={{ background: theme.background, minHeight: '100vh', color: theme.text }}>
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '2.5rem' }}>
-          <div style={{ maxWidth: 700, width: '100%', background: theme.card, borderRadius: 18, boxShadow: `0 4px 24px ${theme.border}`, border: `2.5px solid ${theme.accent}33`, padding: '2rem 2.5rem', margin: '0 auto', transition: 'box-shadow 0.2s' }}>
-            <h2 style={{ color: theme.header, fontWeight: 900, fontSize: '2.1rem', marginBottom: '1.2rem', textAlign: 'center', letterSpacing: '0.01em', textShadow: `0 2px 12px ${theme.background}` }}>Income Sources</h2>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => openModal()}
-                style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.7rem 1.4rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', boxShadow: `0 2px 8px ${theme.border}` }}
-              >
-                Add Income Source
-              </button>
+          <div style={{ maxWidth: 900, width: '100%', background: theme.card, borderRadius: 18, boxShadow: `0 4px 24px ${theme.border}`, border: `2.5px solid ${theme.accent}33`, padding: '2rem 2.5rem', margin: '0 auto', transition: 'box-shadow 0.2s' }}>
+            <h2 style={{ color: theme.header, fontWeight: 900, fontSize: '2.1rem', marginBottom: '1.2rem', textAlign: 'center', letterSpacing: '0.01em', textShadow: `0 2px 12px ${theme.background}` }}>Income</h2>
+            {/* Tabs */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 24 }}>
+              <button onClick={() => setTab('sources')} style={{ background: tab === 'sources' ? theme.accent : theme.background, color: tab === 'sources' ? theme.card : theme.text, border: `1.5px solid ${theme.accent}`, borderRadius: 8, padding: '0.6rem 1.5rem', fontWeight: 700, fontSize: '1.08rem', cursor: 'pointer', boxShadow: tab === 'sources' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Source</button>
+              <button onClick={() => setTab('earners')} style={{ background: tab === 'earners' ? theme.accent : theme.background, color: tab === 'earners' ? theme.card : theme.text, border: `1.5px solid ${theme.accent}`, borderRadius: 8, padding: '0.6rem 1.5rem', fontWeight: 700, fontSize: '1.08rem', cursor: 'pointer', boxShadow: tab === 'earners' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Earner</button>
             </div>
-            <div style={{ width: '100%', borderRadius: 12, boxShadow: `0 1px 8px ${theme.border}` }}>
-              {sources.length === 0 ? (
-                <p style={{ color: theme.subtext, fontSize: '1.1rem', textAlign: 'center', marginTop: 32 }}>No income sources found.</p>
-              ) : (
-                <div className="dashboard-grid" style={{ marginBottom: 8 }}>
-                  {sources.map((src) => {
-                    const { perPaycheck, monthly } = getPaycheckAndMonthly(src);
-                    const actual = perPaycheck; // For now, treat as actual per-paycheck
-                    const expected = monthly;
-                    const variance = getVariance(expected, actual * (src.frequency && src.frequency.toLowerCase() === 'monthly' ? 1 : 1));
-                    const breakdown = getNetBreakdown({ ...src, expected_amount: perPaycheck });
-                    const monthlyNet = getPaycheckAndMonthly({ ...src, expected_amount: breakdown.net }).monthly;
-                    return (
-                      <div key={src.id} style={{ background: `linear-gradient(135deg, ${theme.card} 80%, ${theme.accent}11 100%)`, borderRadius: 18, boxShadow: `0 2px 16px ${theme.border}`, border: `2px solid ${theme.accent}22`, padding: '1.5rem 1.2rem', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', transition: 'box-shadow 0.2s', marginBottom: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
-                          <div style={{ fontSize: 32 }}>{renderTypeIcon(src.type)}</div>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '1.18rem', color: theme.header, letterSpacing: 0.2 }}>{src.name}</div>
-                            <div style={{ fontSize: '0.99rem', color: theme.subtext }}>{src.earner} &middot; {src.frequency.charAt(0).toUpperCase() + src.frequency.slice(1)}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
-                          <span style={{ fontWeight: 700, color: theme.success, fontSize: '1.13rem' }}>Per Paycheck: ${perPaycheck.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                          <span style={{ fontWeight: 700, color: theme.info, fontSize: '1.13rem' }}>Monthly Equivalent: ${monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                        </div>
-                        {/* Collapsible Net Income Breakdown */}
-                        <button
-                          onClick={() => toggleBreakdown(src.id)}
-                          style={{
-                            background: theme.background,
-                            color: theme.info,
-                            border: `1px solid ${theme.info}`,
-                            borderRadius: 8,
-                            padding: '0.4rem 1rem',
-                            fontWeight: 700,
-                            fontSize: '1rem',
-                            cursor: 'pointer',
-                            marginBottom: 4,
-                            alignSelf: 'flex-start',
-                            boxShadow: `0 1px 4px ${theme.border}22`
-                          }}
-                          aria-expanded={!!expandedBreakdowns[src.id]}
-                          aria-controls={`breakdown-${src.id}`}
-                        >
-                          {expandedBreakdowns[src.id] ? 'Hide Net Income Breakdown' : 'Show Net Income Breakdown'}
-                        </button>
-                        {expandedBreakdowns[src.id] && (
-                          <div id={`breakdown-${src.id}`} style={{ marginBottom: 8, color: theme.text, fontSize: '1rem', background: theme.background, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '0.7rem 1rem', boxShadow: `0 1px 4px ${theme.border}22` }}>
-                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Net Income Breakdown</div>
-                            <div style={{ fontSize: '0.98rem', color: theme.text }}>
-                              <b>Gross:</b> ${breakdown.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Federal Tax:</b> -${breakdown.fed.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>State Tax:</b> -${breakdown.state.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Social Security:</b> -${breakdown.ss.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Medicare:</b> -${breakdown.medicare.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Other Deductions:</b> -${breakdown.other.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Total Deductions:</b> -${breakdown.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
-                              <b>Net Income:</b> <span style={{ color: theme.success }}>${breakdown.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span><br />
-                              <b>Monthly Net Equivalent:</b> <span style={{ color: theme.info }}>${monthlyNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+            {/* Tab Content */}
+            {tab === 'sources' && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                  <button
+                    onClick={() => openModal()}
+                    style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.7rem 1.4rem', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', boxShadow: `0 2px 8px ${theme.border}` }}
+                  >
+                    Add Income Source
+                  </button>
+                </div>
+                <div style={{ width: '100%', borderRadius: 12, boxShadow: `0 1px 8px ${theme.border}` }}>
+                  {sources.length === 0 ? (
+                    <p style={{ color: theme.subtext, fontSize: '1.1rem', textAlign: 'center', marginTop: 32 }}>No income sources found.</p>
+                  ) : (
+                    <div className="dashboard-grid" style={{ marginBottom: 8 }}>
+                      {sources.map((src) => {
+                        const { perPaycheck, monthly } = getPaycheckAndMonthly(src);
+                        const actual = perPaycheck; // For now, treat as actual per-paycheck
+                        const expected = monthly;
+                        const variance = getVariance(expected, actual * (src.frequency && src.frequency.toLowerCase() === 'monthly' ? 1 : 1));
+                        const breakdown = getNetBreakdown({ ...src, expected_amount: perPaycheck });
+                        const monthlyNet = getPaycheckAndMonthly({ ...src, expected_amount: breakdown.net }).monthly;
+                        return (
+                          <div key={src.id} style={{ background: `linear-gradient(135deg, ${theme.card} 80%, ${theme.accent}11 100%)`, borderRadius: 18, boxShadow: `0 2px 16px ${theme.border}`, border: `2px solid ${theme.accent}22`, padding: '1.5rem 1.2rem', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative', transition: 'box-shadow 0.2s', marginBottom: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6 }}>
+                              <div style={{ fontSize: 32 }}>{renderTypeIcon(src.type)}</div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: '1.18rem', color: theme.header, letterSpacing: 0.2 }}>{src.name}</div>
+                                <div style={{ fontSize: '0.99rem', color: theme.subtext }}>{src.earner} &middot; {src.frequency.charAt(0).toUpperCase() + src.frequency.slice(1)}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
+                              <span style={{ fontWeight: 700, color: theme.success, fontSize: '1.13rem' }}>Per Paycheck: ${perPaycheck.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                              <span style={{ fontWeight: 700, color: theme.info, fontSize: '1.13rem' }}>Monthly Equivalent: ${monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                            </div>
+                            {/* Collapsible Net Income Breakdown */}
+                            <button
+                              onClick={() => toggleBreakdown(src.id)}
+                              style={{
+                                background: theme.background,
+                                color: theme.info,
+                                border: `1px solid ${theme.info}`,
+                                borderRadius: 8,
+                                padding: '0.4rem 1rem',
+                                fontWeight: 700,
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                                marginBottom: 4,
+                                alignSelf: 'flex-start',
+                                boxShadow: `0 1px 4px ${theme.border}22`
+                              }}
+                              aria-expanded={!!expandedBreakdowns[src.id]}
+                              aria-controls={`breakdown-${src.id}`}
+                            >
+                              {expandedBreakdowns[src.id] ? 'Hide Net Income Breakdown' : 'Show Net Income Breakdown'}
+                            </button>
+                            {expandedBreakdowns[src.id] && (
+                              <div id={`breakdown-${src.id}`} style={{ marginBottom: 8, color: theme.text, fontSize: '1rem', background: theme.background, borderRadius: 10, border: `1px solid ${theme.border}`, padding: '0.7rem 1rem', boxShadow: `0 1px 4px ${theme.border}22` }}>
+                                <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Net Income Breakdown</div>
+                                <div style={{ fontSize: '0.98rem', color: theme.text }}>
+                                  <b>Gross:</b> ${breakdown.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Federal Tax:</b> -${breakdown.fed.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>State Tax:</b> -${breakdown.state.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Social Security:</b> -${breakdown.ss.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Medicare:</b> -${breakdown.medicare.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Other Deductions:</b> -${breakdown.other.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Total Deductions:</b> -${breakdown.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                                  <b>Net Income:</b> <span style={{ color: theme.success }}>${breakdown.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span><br />
+                                  <b>Monthly Net Equivalent:</b> <span style={{ color: theme.info }}>${monthlyNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                            )}
+                            <div style={{ marginBottom: 8, color: theme.subtext, fontSize: '1rem' }}><strong>Notes:</strong> {src.notes || <span style={{ color: theme.error }}>None</span>}</div>
+                            <div style={{ marginBottom: 4 }}>
+                              <strong style={{ color: theme.header, fontSize: '1.01rem' }}>Payment History:</strong>
+                              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'row', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                                {incomeTx.filter(tx => {
+                                  const desc = (tx.description || '').toLowerCase();
+                                  const cat = (tx.category || '').toLowerCase();
+                                  return (
+                                    desc.includes((src.name || '').toLowerCase()) ||
+                                    cat.includes((src.name || '').toLowerCase()) ||
+                                    (src.earner && desc.includes(src.earner.toLowerCase()))
+                                  );
+                                }).map((tx, i) => (
+                                  <div key={i} style={{ minWidth: 110, background: theme.background, borderRadius: 8, border: `1px solid ${theme.border}`, boxShadow: `0 1px 4px ${theme.border}33`, padding: '0.5rem 0.7rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', fontSize: '0.97rem' }}>
+                                    <div style={{ fontWeight: 700, color: theme.success }}>${Number(tx.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                                    <div style={{ color: theme.header }}>{tx.date}</div>
+                                    <div style={{ color: theme.subtext, fontSize: '0.93rem', marginTop: 2 }}>{tx.description}</div>
+                                  </div>
+                                ))}
+                                {incomeTx.filter(tx => {
+                                  const desc = (tx.description || '').toLowerCase();
+                                  const cat = (tx.category || '').toLowerCase();
+                                  return (
+                                    desc.includes((src.name || '').toLowerCase()) ||
+                                    cat.includes((src.name || '').toLowerCase()) ||
+                                    (src.earner && desc.includes(src.earner.toLowerCase()))
+                                  );
+                                }).length === 0 && (
+                                  <span style={{ color: theme.subtext, fontSize: '0.97rem', padding: '0.5rem 0.7rem' }}>No payments found.</span>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                              <button
+                                onClick={() => openModal(src)}
+                                style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.5rem 1.1rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '1em' }}
+                              >Edit</button>
+                              <button
+                                onClick={() => handleDelete(src.id)}
+                                style={{ background: theme.error, color: theme.card, border: 'none', borderRadius: 8, padding: '0.5rem 1.1rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '1em' }}
+                              >Delete</button>
                             </div>
                           </div>
-                        )}
-                        <div style={{ marginBottom: 8, color: theme.subtext, fontSize: '1rem' }}><strong>Notes:</strong> {src.notes || <span style={{ color: theme.error }}>None</span>}</div>
-                        <div style={{ marginBottom: 4 }}>
-                          <strong style={{ color: theme.header, fontSize: '1.01rem' }}>Payment History:</strong>
-                          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'row', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                            {incomeTx.filter(tx => {
-                              const desc = (tx.description || '').toLowerCase();
-                              const cat = (tx.category || '').toLowerCase();
-                              return (
-                                desc.includes((src.name || '').toLowerCase()) ||
-                                cat.includes((src.name || '').toLowerCase()) ||
-                                (src.earner && desc.includes(src.earner.toLowerCase()))
-                              );
-                            }).map((tx, i) => (
-                              <div key={i} style={{ minWidth: 110, background: theme.background, borderRadius: 8, border: `1px solid ${theme.border}`, boxShadow: `0 1px 4px ${theme.border}33`, padding: '0.5rem 0.7rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', fontSize: '0.97rem' }}>
-                                <div style={{ fontWeight: 700, color: theme.success }}>${Number(tx.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-                                <div style={{ color: theme.header }}>{tx.date}</div>
-                                <div style={{ color: theme.subtext, fontSize: '0.93rem', marginTop: 2 }}>{tx.description}</div>
-                              </div>
-                            ))}
-                            {incomeTx.filter(tx => {
-                              const desc = (tx.description || '').toLowerCase();
-                              const cat = (tx.category || '').toLowerCase();
-                              return (
-                                desc.includes((src.name || '').toLowerCase()) ||
-                                cat.includes((src.name || '').toLowerCase()) ||
-                                (src.earner && desc.includes(src.earner.toLowerCase()))
-                              );
-                            }).length === 0 && (
-                              <span style={{ color: theme.subtext, fontSize: '0.97rem', padding: '0.5rem 0.7rem' }}>No payments found.</span>
-                            )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            {tab === 'earners' && (
+              <>
+                {/* Household summary */}
+                {earnerStats && (
+                  <div style={{ marginBottom: 24, background: theme.background, borderRadius: 14, boxShadow: `0 1px 8px ${theme.border}`, padding: '1.2rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.18rem', color: theme.header }}>Household Income Summary</div>
+                    <div style={{ fontSize: '1.05rem', color: theme.text }}>
+                      <b>Total Gross:</b> ${earnerStats.householdGross?.toLocaleString(undefined, { maximumFractionDigits: 2 })} &nbsp;|&nbsp;
+                      <b>Total Net:</b> ${earnerStats.householdNet?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                )}
+                {/* Earner cards */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center' }}>
+                  {earnerStats && earnerStats.earners.map((e) => (
+                    <div key={e.earner} style={{ minWidth: 260, maxWidth: 340, flex: '1 1 260px', background: theme.background, borderRadius: 14, boxShadow: `0 1px 8px ${theme.border}`, padding: '1.2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 8, border: e.earner === 'Unassigned' ? `2px solid ${theme.error}` : `2px solid ${theme.accent}33` }}>
+                      <div style={{ fontWeight: 800, fontSize: '1.13rem', color: e.earner === 'Unassigned' ? theme.error : theme.header, marginBottom: 4 }}>{e.earner}</div>
+                      <div style={{ width: '100%', margin: '8px 0' }}>
+                        <div style={{ fontSize: '0.99rem', color: theme.text }}><b>Sources:</b> {e.count}</div>
+                        <div style={{ fontSize: '0.99rem', color: theme.text }}><b>Gross:</b> ${e.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                        <div style={{ fontSize: '0.99rem', color: theme.text }}><b>Net:</b> ${e.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                        <div style={{ margin: '10px 0 4px 0', width: '100%' }}>
+                          <div style={{ fontSize: '0.97rem', color: theme.subtext, marginBottom: 2 }}>Contribution to Household Gross</div>
+                          <div style={{ background: theme.card, borderRadius: 8, height: 18, width: '100%', boxShadow: `0 1px 4px ${theme.border}22`, border: `1px solid ${theme.border}`, overflow: 'hidden', marginBottom: 2 }}>
+                            <div style={{ height: '100%', width: `${e.grossPct.toFixed(1)}%`, background: e.earner === 'Unassigned' ? theme.error : theme.accent, borderRadius: 8, transition: 'width 0.3s' }}></div>
+                          </div>
+                          <div style={{ fontSize: '0.97rem', color: theme.subtext, marginBottom: 2 }}>Contribution to Household Net</div>
+                          <div style={{ background: theme.card, borderRadius: 8, height: 18, width: '100%', boxShadow: `0 1px 4px ${theme.border}22`, border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${e.netPct.toFixed(1)}%`, background: e.earner === 'Unassigned' ? theme.error : theme.success, borderRadius: 8, transition: 'width 0.3s' }}></div>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                          <button
-                            onClick={() => openModal(src)}
-                            style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.5rem 1.1rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '1em' }}
-                          >Edit</button>
-                          <button
-                            onClick={() => handleDelete(src.id)}
-                            style={{ background: theme.error, color: theme.card, border: 'none', borderRadius: 8, padding: '0.5rem 1.1rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 1px 4px ${theme.border}`, fontSize: '1em' }}
-                          >Delete</button>
-                        </div>
                       </div>
-                    );
-                  })}
+                      {/* List sources for this earner */}
+                      <div style={{ width: '100%', marginTop: 8 }}>
+                        {e.sources.map((src, idx) => (
+                          <div key={src.id || idx} style={{ background: theme.card, borderRadius: 8, boxShadow: `0 1px 4px ${theme.border}22`, padding: '0.7rem 1rem', marginBottom: 6, fontSize: '0.98rem', color: theme.text }}>
+                            <b>{src.name}</b> <span style={{ color: theme.subtext }}>({src.type}, {src.frequency})</span><br />
+                            <span style={{ color: theme.info }}>Gross: ${Number(src.expected_amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {e.earner === 'Unassigned' && (
+                        <div style={{ color: theme.error, fontWeight: 700, marginTop: 8, fontSize: '1.01rem' }}>⚠️ Please assign an earner to these sources!</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </>
+            )}
             {/* Tooltip for explanations */}
             {tooltip.visible && (
               <div
