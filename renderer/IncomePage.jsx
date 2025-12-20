@@ -8,7 +8,12 @@ const defaultSource = {
   earner: '',
   frequency: 'monthly',
   expected_amount: '',
-  notes: ''
+  notes: '',
+  federal_tax: 12,
+  state_tax: 5,
+  social_security: 6.2,
+  medicare: 1.45,
+  other_deductions: 0
 };
 
 export default function IncomePage({ theme, isDarkMode }) {
@@ -20,6 +25,10 @@ export default function IncomePage({ theme, isDarkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ ...defaultSource });
+  const [withholding, setWithholding] = useState({
+    total: 0,
+    net: 0
+  });
   const [error, setError] = useState('');
   const [incomeTx, setIncomeTx] = useState([]);
 
@@ -51,8 +60,22 @@ export default function IncomePage({ theme, isDarkMode }) {
     setError('');
   }
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
+
+  // Calculate withholding in real time
+  useEffect(() => {
+    const gross = Number(form.expected_amount) || 0;
+    const fed = gross * (Number(form.federal_tax) || 0) / 100;
+    const state = gross * (Number(form.state_tax) || 0) / 100;
+    const ss = gross * (Number(form.social_security) || 0) / 100;
+    const medicare = gross * (Number(form.medicare) || 0) / 100;
+    const other = Number(form.other_deductions) || 0;
+    const total = fed + state + ss + medicare + other;
+    const net = gross - total;
+    setWithholding({ total, net });
+  }, [form.expected_amount, form.federal_tax, form.state_tax, form.social_security, form.medicare, form.other_deductions]);
   function handleSubmit(e) {
     e.preventDefault();
     if (!form.name || !form.earner || !form.expected_amount) {
@@ -212,6 +235,33 @@ export default function IncomePage({ theme, isDarkMode }) {
                     </select>
                     <input name="expected_amount" type="number" value={form.expected_amount} onChange={handleChange} required placeholder="Expected Amount" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
                     <input name="notes" value={form.notes} onChange={handleChange} placeholder="Notes" style={{ padding: '0.6rem', borderRadius: 8, border: `1px solid ${theme.border}`, fontSize: '1rem', background: theme.background, color: theme.text, pointerEvents: 'auto' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8, background: theme.background, borderRadius: 8, padding: '0.7rem 1rem', border: `1px solid ${theme.border}` }}>
+                      <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Tax Withholding</div>
+                      <label style={{ fontSize: '0.98rem', color: theme.text }}>
+                        Federal Tax (%):
+                        <input name="federal_tax" type="number" min="0" max="50" step="0.01" value={form.federal_tax} onChange={handleChange} style={{ marginLeft: 8, width: 70, borderRadius: 6, border: `1px solid ${theme.border}`, padding: '0.3rem 0.5rem', background: theme.background, color: theme.text }} />
+                      </label>
+                      <label style={{ fontSize: '0.98rem', color: theme.text }}>
+                        State Tax (%):
+                        <input name="state_tax" type="number" min="0" max="20" step="0.01" value={form.state_tax} onChange={handleChange} style={{ marginLeft: 8, width: 70, borderRadius: 6, border: `1px solid ${theme.border}`, padding: '0.3rem 0.5rem', background: theme.background, color: theme.text }} />
+                      </label>
+                      <label style={{ fontSize: '0.98rem', color: theme.text }}>
+                        Social Security (6.2%):
+                        <input name="social_security" type="number" min="0" max="10" step="0.01" value={form.social_security} onChange={handleChange} style={{ marginLeft: 8, width: 70, borderRadius: 6, border: `1px solid ${theme.border}`, padding: '0.3rem 0.5rem', background: theme.background, color: theme.text }} />
+                      </label>
+                      <label style={{ fontSize: '0.98rem', color: theme.text }}>
+                        Medicare (1.45%):
+                        <input name="medicare" type="number" min="0" max="5" step="0.01" value={form.medicare} onChange={handleChange} style={{ marginLeft: 8, width: 70, borderRadius: 6, border: `1px solid ${theme.border}`, padding: '0.3rem 0.5rem', background: theme.background, color: theme.text }} />
+                      </label>
+                      <label style={{ fontSize: '0.98rem', color: theme.text }}>
+                        Other Deductions ($):
+                        <input name="other_deductions" type="number" min="0" step="0.01" value={form.other_deductions} onChange={handleChange} style={{ marginLeft: 8, width: 90, borderRadius: 6, border: `1px solid ${theme.border}`, padding: '0.3rem 0.5rem', background: theme.background, color: theme.text }} />
+                      </label>
+                      <div style={{ marginTop: 6, color: theme.subtext, fontSize: '0.98rem' }}>
+                        <strong>Total Withholding:</strong> ${withholding.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br />
+                        <strong>Net Income:</strong> ${withholding.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
                     {error && <div style={{ color: theme.error, fontWeight: 600, marginTop: 4 }}>{error}</div>}
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: 8, pointerEvents: 'auto' }}>
                       <button type="submit" style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' }}>{editing ? 'Update' : 'Add'}</button>
