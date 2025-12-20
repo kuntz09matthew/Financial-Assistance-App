@@ -499,7 +499,7 @@ function App() {
                     billRemindersError={billRemindersError}
                   />
                 } />
-                <Route path="/income" element={<IncomePage />} />
+                <Route path="/income" element={<IncomePage theme={theme} isDarkMode={isDarkMode} />} />
                 <Route path="/bills" element={
                   <BillsPage
                     theme={theme}
