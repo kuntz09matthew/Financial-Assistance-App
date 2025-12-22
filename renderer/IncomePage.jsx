@@ -1,6 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { IncomeLineChart, IncomeStackedAreaChart, IncomeGroupedBarChart } from './IncomeTrendsCharts.jsx';
 
 const defaultSource = {
   name: '',
@@ -63,7 +64,47 @@ export default function IncomePage({ theme, isDarkMode }) {
   const [incomeTx, setIncomeTx] = useState([]);
   // New: Earner statistics and tab state
   const [earnerStats, setEarnerStats] = useState(null);
-  const [tab, setTab] = useState('sources'); // 'sources', 'earners', 'variable'
+  const [tab, setTab] = useState('sources'); // 'sources', 'earners', 'variable', 'trends'
+
+  // State for income trends
+  const [trendData, setTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendError, setTrendError] = useState('');
+  const [trendPeriod, setTrendPeriod] = useState(12); // 6, 12, 24
+
+  // Fetch trend data when Trends tab is selected
+  useEffect(() => {
+    if (tab === 'trends') {
+      setTrendLoading(true);
+      setTrendError('');
+      window.electronAPI.invoke('get-income-trends', { months: trendPeriod })
+        .then((data) => {
+          if (data && !data.error) setTrendData(data);
+          else setTrendError(data?.error || 'Failed to load trend data.');
+        })
+        .catch((e) => setTrendError(e.message || 'Failed to load trend data.'))
+        .finally(() => setTrendLoading(false));
+    }
+  }, [tab, trendPeriod]);
+  // Theme colors for charts
+  const stackedColors = [
+    theme.accent,
+    theme.success,
+    theme.info,
+    theme.warning,
+    theme.error,
+    '#7e57c2',
+    '#26a69a',
+    '#ffb300',
+    '#ec407a',
+    '#789262',
+  ];
+
+  // Collapsible chart state (all collapsed by default)
+  const [openStats, setOpenStats] = React.useState(false);
+  const [openLine, setOpenLine] = React.useState(false);
+  const [openSource, setOpenSource] = React.useState(false);
+  const [openEarner, setOpenEarner] = React.useState(false);
 
   // Dummy functions for illustration; replace with your actual logic
   // Calculate per-paycheck and monthly equivalent for any source
@@ -200,7 +241,113 @@ export default function IncomePage({ theme, isDarkMode }) {
                 <button onClick={() => setTab('sources')} style={{ background: tab === 'sources' ? theme.accent : theme.background, color: tab === 'sources' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'sources' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Source</button>
                 <button onClick={() => setTab('earners')} style={{ background: tab === 'earners' ? theme.accent : theme.background, color: tab === 'earners' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'earners' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Earner</button>
                 <button onClick={() => setTab('variable')} style={{ background: tab === 'variable' ? theme.accent : theme.background, color: tab === 'variable' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'variable' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>Variable Income</button>
+                <button onClick={() => setTab('trends')} style={{ background: tab === 'trends' ? theme.accent : theme.background, color: tab === 'trends' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'trends' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>Trends</button>
               </div>
+                          {tab === 'trends' && (
+                            <div style={{ marginBottom: 32, background: `linear-gradient(135deg, ${theme.accent}22 0%, ${theme.card} 100%)`, borderRadius: 18, boxShadow: `0 2px 16px ${theme.border}`, border: `2px solid ${theme.accent}22`, padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, width: '100%' }}>
+                              <h3 style={{ color: theme.header, fontWeight: 900, fontSize: '1.5rem', marginBottom: 12 }}>Income Trends</h3>
+                              {/* Period Selector */}
+                              <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                                {[6, 12, 24].map(p => (
+                                  <button
+                                    key={p}
+                                    onClick={() => setTrendPeriod(p)}
+                                    style={{
+                                      background: trendPeriod === p ? theme.accent : theme.background,
+                                      color: trendPeriod === p ? theme.card : theme.text,
+                                      border: `2px solid ${theme.accent}`,
+                                      borderRadius: 8,
+                                      padding: '0.5rem 1.2rem',
+                                      fontWeight: 700,
+                                      fontSize: '1.05rem',
+                                      cursor: 'pointer',
+                                      boxShadow: trendPeriod === p ? `0 2px 8px ${theme.border}` : 'none',
+                                      transition: 'all 0.15s',
+                                    }}
+                                  >
+                                    Last {p} Months
+                                  </button>
+                                ))}
+                              </div>
+                              {trendLoading ? (
+                                <div style={{ color: theme.info, fontSize: '1.15rem', textAlign: 'center', marginTop: 32 }}>Loading trend data...</div>
+                              ) : trendError ? (
+                                <div style={{ color: theme.error, fontSize: '1.15rem', textAlign: 'center', marginTop: 32 }}>{trendError}</div>
+                              ) : trendData ? (
+                                <>
+                                  {/* Collapsible Trend Statistics */}
+                                  <div style={{ width: '100%', marginBottom: 18 }}>
+                                    <button onClick={() => setOpenStats(o => !o)} style={{ width: '100%', background: theme.card, color: theme.header, border: `2px solid ${theme.accent}`, borderRadius: 10, padding: '0.8rem 1.3rem', fontWeight: 800, fontSize: '1.15rem', textAlign: 'left', cursor: 'pointer', marginBottom: 4, boxShadow: `0 1px 4px ${theme.border}22` }}>
+                                      {openStats ? '▼' : '►'} Trend Statistics
+                                    </button>
+                                    {openStats && (
+                                      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', justifyContent: 'center', background: theme.background, borderRadius: 10, padding: '1rem 0.5rem' }}>
+                                        <div style={{ background: theme.card, borderRadius: 10, padding: '0.8rem 1.3rem', color: theme.text, fontWeight: 700, fontSize: '1.08rem', minWidth: 120, textAlign: 'center' }}>
+                                          Avg: <span style={{ color: theme.info }}>${trendData.stats.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div style={{ background: theme.card, borderRadius: 10, padding: '0.8rem 1.3rem', color: theme.text, fontWeight: 700, fontSize: '1.08rem', minWidth: 120, textAlign: 'center' }}>
+                                          Min: <span style={{ color: theme.error }}>${trendData.stats.min.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div style={{ background: theme.card, borderRadius: 10, padding: '0.8rem 1.3rem', color: theme.text, fontWeight: 700, fontSize: '1.08rem', minWidth: 120, textAlign: 'center' }}>
+                                          Max: <span style={{ color: theme.success }}>${trendData.stats.max.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div style={{ background: theme.card, borderRadius: 10, padding: '0.8rem 1.3rem', color: theme.text, fontWeight: 700, fontSize: '1.08rem', minWidth: 120, textAlign: 'center' }}>
+                                          Trend: <span style={{ color: trendData.stats.trend === 'Increasing' ? theme.success : trendData.stats.trend === 'Decreasing' ? theme.error : theme.info }}>{trendData.stats.trend}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Collapsible Line Chart: Total Income Over Time */}
+                                  <div style={{ width: '100%', marginBottom: 18 }}>
+                                    <button onClick={() => setOpenLine(o => !o)} style={{ width: '100%', background: theme.card, color: theme.header, border: `2px solid ${theme.accent}`, borderRadius: 10, padding: '0.8rem 1.3rem', fontWeight: 800, fontSize: '1.15rem', textAlign: 'left', cursor: 'pointer', marginBottom: 4, boxShadow: `0 1px 4px ${theme.border}22` }}>
+                                      {openLine ? '▼' : '►'} Total Income Over Time
+                                    </button>
+                                    {openLine && (
+                                      <div style={{ background: theme.background, borderRadius: 14, padding: '1.2rem 2rem' }}>
+                                        <IncomeLineChart
+                                          months={trendData.months}
+                                          data={trendData.totalByMonth.map(m => m.total)}
+                                          theme={{ ...theme, isDarkMode, stackedColors }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Collapsible Stacked Area Chart: Income by Source */}
+                                  <div style={{ width: '100%', marginBottom: 18 }}>
+                                    <button onClick={() => setOpenSource(o => !o)} style={{ width: '100%', background: theme.card, color: theme.header, border: `2px solid ${theme.accent}`, borderRadius: 10, padding: '0.8rem 1.3rem', fontWeight: 800, fontSize: '1.15rem', textAlign: 'left', cursor: 'pointer', marginBottom: 4, boxShadow: `0 1px 4px ${theme.border}22` }}>
+                                      {openSource ? '▼' : '►'} Income by Source
+                                    </button>
+                                    {openSource && (
+                                      <div style={{ background: theme.background, borderRadius: 14, padding: '1.2rem 2rem' }}>
+                                        <IncomeStackedAreaChart
+                                          months={trendData.months}
+                                          bySource={trendData.bySource}
+                                          theme={{ ...theme, isDarkMode, stackedColors }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                  {/* Collapsible Grouped Bar Chart: Income by Earner */}
+                                  <div style={{ width: '100%', marginBottom: 18 }}>
+                                    <button onClick={() => setOpenEarner(o => !o)} style={{ width: '100%', background: theme.card, color: theme.header, border: `2px solid ${theme.accent}`, borderRadius: 10, padding: '0.8rem 1.3rem', fontWeight: 800, fontSize: '1.15rem', textAlign: 'left', cursor: 'pointer', marginBottom: 4, boxShadow: `0 1px 4px ${theme.border}22` }}>
+                                      {openEarner ? '▼' : '►'} Income by Household Member
+                                    </button>
+                                    {openEarner && (
+                                      <div style={{ background: theme.background, borderRadius: 14, padding: '1.2rem 2rem' }}>
+                                        <IncomeGroupedBarChart
+                                          months={trendData.months}
+                                          byEarner={trendData.byEarner}
+                                          theme={{ ...theme, isDarkMode, stackedColors }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                              ) : (
+                                <div style={{ color: theme.subtext, fontSize: '1.15rem', textAlign: 'center', marginTop: 32 }}>No trend data found.</div>
+                              )}
+                            </div>
+                          )}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
                 <button
                   onClick={() => openModal()}

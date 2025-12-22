@@ -414,7 +414,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Realistic test data for ~$60k/year household with two earners
   - Full integration with existing income tracking features
   - **Completed: 2025-12-20**
-  [ ] Variable income tracking (for commission/freelance)
+  [✅] Variable income tracking (for commission/freelance)
   - Auto-detection of variable income types (freelance, investment, other)
   - Real-time average calculation from payment history
   - Variability metrics (coefficient of variation with detailed calculations)
@@ -433,7 +433,7 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Empty states with helpful guidance and info modal
   - Backend endpoint with comprehensive analytics
   - Test data includes multi-year variable income history (i.e. 2023-2025)
-  [ ] Income trend charts
+  [✅] Income trend charts
   - Total income over time line chart with gradient fill
   - Income by source stacked area chart
   - Income by household member grouped bar chart
@@ -450,6 +450,8 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Color-coded trend indicators (increasing/decreasing/stable)
   - Visual comparison of income sources and household members
   - Integrated into Income section as "Trends" sub-tab
+    - **Completed: 2025-12-22**
+    - See CHANGELOG.md and README.md for details
   [ ] Year-over-year income comparison
   - Backend API endpoint for year-over-year data aggregation ✅
   - Comprehensive statistics by year (total, monthly average, payment count) ✅

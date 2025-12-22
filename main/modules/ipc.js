@@ -172,6 +172,111 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
     }
   });
 
+  // --- Income Trends Aggregation Handler ---
+  ipcMain.handle('get-income-trends', async (event, { months = 12 } = {}) => {
+    try {
+      const db = new Database(userDbPath);
+      const now = new Date();
+      // Helper: get all sources and earners
+      const sources = db.prepare('SELECT id, name, type, earner FROM income_sources').all();
+      const earners = [...new Set(sources.map(s => s.earner).filter(Boolean))];
+
+      // Build month list
+      const monthList = [];
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        monthList.push({
+          key: `${y}-${m.toString().padStart(2, '0')}`,
+          start: `${y}-${m.toString().padStart(2, '0')}-01`,
+          end: `${y}-${m.toString().padStart(2, '0')}-31`
+        });
+      }
+
+      // Total income by month
+      const totalByMonth = monthList.map(({ key, start, end }) => {
+        const total = db.prepare('SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount > 0').get(start, end).total || 0;
+        return { month: key, total: Number(total) };
+      });
+
+
+      // Income by source by month (ensure all sources and all months are present)
+      const bySource = {};
+      for (const src of sources) {
+        bySource[src.name] = monthList.map(({ key, start, end }) => {
+          // Try to match by category = source name, or by type if not found
+          let row = db.prepare('SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount > 0 AND category = ?').get(start, end, src.name);
+          let total = row && row.total ? Number(row.total) : 0;
+          if (total === 0 && src.type) {
+            // Try matching by type (e.g., category = 'salary', 'freelance', etc.)
+            row = db.prepare('SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount > 0 AND lower(category) = ?').get(start, end, src.type.toLowerCase());
+            total = row && row.total ? Number(row.total) : 0;
+          }
+          return { month: key, total };
+        });
+      }
+      // If no sources, still provide at least one empty series to avoid blank chart
+      if (Object.keys(bySource).length === 0) {
+        bySource['No Sources'] = monthList.map(({ key }) => ({ month: key, total: 0 }));
+      }
+
+      // Income by earner by month (ensure all earners and all months are present)
+      const byEarner = {};
+      for (const earner of earners) {
+        byEarner[earner] = monthList.map(({ key, start, end }) => {
+          // Get all sources for this earner
+          const srcs = sources.filter(s => s.earner === earner);
+          let total = 0;
+          for (const src of srcs) {
+            // Try to match by category = source name, or by type if not found
+            let row = db.prepare('SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount > 0 AND category = ?').get(start, end, src.name);
+            let t = row && row.total ? Number(row.total) : 0;
+            if (t === 0 && src.type) {
+              row = db.prepare('SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND amount > 0 AND lower(category) = ?').get(start, end, src.type.toLowerCase());
+              t = row && row.total ? Number(row.total) : 0;
+            }
+            total += t;
+          }
+          return { month: key, total };
+        });
+      }
+      // If no earners, still provide at least one empty series to avoid blank chart
+      if (Object.keys(byEarner).length === 0) {
+        byEarner['No Earners'] = monthList.map(({ key }) => ({ month: key, total: 0 }));
+      }
+
+      // Trend statistics
+      const totals = totalByMonth.map(m => m.total);
+      const avg = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : 0;
+      const min = totals.length ? Math.min(...totals) : 0;
+      const max = totals.length ? Math.max(...totals) : 0;
+      // Trend direction: compare last 3 months to previous 3
+      const last3 = totals.slice(-3);
+      const prev3 = totals.slice(-6, -3);
+      let trend = 'Stable';
+      if (last3.length === 3 && prev3.length === 3) {
+        const lastAvg = last3.reduce((a, b) => a + b, 0) / 3;
+        const prevAvg = prev3.reduce((a, b) => a + b, 0) / 3;
+        if (lastAvg > prevAvg * 1.1) trend = 'Increasing';
+        else if (lastAvg < prevAvg * 0.9) trend = 'Decreasing';
+      }
+
+      db.close();
+      return {
+        months: monthList.map(m => m.key),
+        totalByMonth,
+        bySource,
+        byEarner,
+        stats: { avg, min, max, trend },
+        sources,
+        earners
+      };
+    } catch (e) {
+      return { error: e.message };
+    }
+  });
+
   ipcMain.handle('add-income-source', async (event, source) => {
     try {
       const db = new Database(userDbPath);
