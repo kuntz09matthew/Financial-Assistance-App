@@ -262,6 +262,153 @@ ipcMain.handle('get-wisdom-tips', async (event) => {
         return { error: e.message };
       }
     });
+      // --- Variable Income Analysis IPC Handler ---
+      ipcMain.handle('get-variable-income-analysis', async () => {
+        try {
+          const db = new Database(userDbPath);
+          // Auto-detect variable income types
+          const variableTypes = ['freelance', 'investment', 'other'];
+          const sources = db.prepare("SELECT * FROM income_sources WHERE type IN ('freelance','investment','other')").all();
+          if (!sources.length) {
+            db.close();
+            return {
+              sources: [],
+              analytics: [],
+              summary: {},
+              recommendations: [],
+              chartData: [],
+              empty: true
+            };
+          }
+          // For each source, calculate analytics
+          const analytics = [];
+          let allMonthlyStats = [];
+          let allTotals = [];
+          let allRecommendations = [];
+          let chartData = [];
+          for (const src of sources) {
+            // Get 12 months of payments for this source
+            const now = new Date();
+            let monthlyStats = [];
+            let totals = [];
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const firstDay = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+              const lastDay = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-31`;
+              const total = db.prepare("SELECT SUM(amount) as total FROM transactions WHERE date >= ? AND date <= ? AND category = ?").get(firstDay, lastDay, src.type).total || 0;
+              monthlyStats.push({ month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, total });
+              totals.push(total);
+            }
+            // Stats: avg, median, min, max
+            const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+            const sorted = [...totals].sort((a, b) => a - b);
+            const median = sorted.length % 2 === 0 ? (sorted[sorted.length/2-1] + sorted[sorted.length/2])/2 : sorted[Math.floor(sorted.length/2)];
+            const min = Math.min(...totals);
+            const max = Math.max(...totals);
+            // Coefficient of variation
+            const variance = totals.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / totals.length;
+            const stddev = Math.sqrt(variance);
+            const cov = avg !== 0 ? stddev / avg : 0;
+            // Stability assessment
+            let stability = 'Stable';
+            let stabilityColor = '#4caf50';
+            if (cov > 0.5) { stability = 'Highly Variable'; stabilityColor = '#f44336'; }
+            else if (cov > 0.2) { stability = 'Moderately Variable'; stabilityColor = '#ff9800'; }
+            // Trend analysis (compare last 3 months to previous 3)
+            const last3 = totals.slice(-3);
+            const prev3 = totals.slice(-6,-3);
+            const lastAvg = last3.reduce((a,b)=>a+b,0)/3;
+            const prevAvg = prev3.reduce((a,b)=>a+b,0)/3;
+            let trend = 'Stable';
+            if (lastAvg > prevAvg * 1.1) trend = 'Increasing';
+            else if (lastAvg < prevAvg * 0.9) trend = 'Decreasing';
+            // Current month performance
+            const currentMonth = totals[totals.length-1];
+            // Next month forecast
+            const forecastConservative = Math.min(...last3);
+            const forecastExpected = lastAvg;
+            const forecastOptimistic = Math.max(...last3);
+            // Recommendations
+            let recs = [];
+            if (cov > 0.5) recs.push('Consider conservative budgeting and building a larger emergency fund.');
+            else if (cov > 0.2) recs.push('Monitor income closely and avoid overcommitting expenses.');
+            else recs.push('Income is stable. Maintain current budgeting practices.');
+            if (trend === 'Increasing') recs.push('Income is trending up. Consider allocating surplus to savings or goals.');
+            if (trend === 'Decreasing') recs.push('Income is trending down. Review expenses and prepare for lower income.');
+            // Smart budgeting suggestions
+            if (cov > 0.2) recs.push('Budget based on lowest recent month to avoid shortfalls.');
+            // Chart data
+            chartData.push({
+              sourceId: src.id,
+              monthlyStats,
+              avg,
+              median,
+              min,
+              max,
+              cov,
+              stability,
+              stabilityColor,
+              trend,
+              currentMonth,
+              forecast: {
+                conservative: forecastConservative,
+                expected: forecastExpected,
+                optimistic: forecastOptimistic
+              }
+            });
+            analytics.push({
+              source: src,
+              avg,
+              median,
+              min,
+              max,
+              cov,
+              stddev,
+              stability,
+              stabilityColor,
+              trend,
+              currentMonth,
+              forecast: {
+                conservative: forecastConservative,
+                expected: forecastExpected,
+                optimistic: forecastOptimistic
+              },
+              recommendations: recs,
+              monthlyStats
+            });
+            allMonthlyStats.push(...monthlyStats);
+            allTotals.push(...totals);
+            allRecommendations.push(...recs);
+          }
+          // Summary across all sources
+          const summaryAvg = allTotals.length ? allTotals.reduce((a,b)=>a+b,0)/allTotals.length : 0;
+          const summaryMin = allTotals.length ? Math.min(...allTotals) : 0;
+          const summaryMax = allTotals.length ? Math.max(...allTotals) : 0;
+          const summaryCov = summaryAvg !== 0 ? (Math.sqrt(allTotals.reduce((a,b)=>a+Math.pow(b-summaryAvg,2),0)/allTotals.length)/summaryAvg) : 0;
+          let summaryStability = 'Stable';
+          let summaryStabilityColor = '#4caf50';
+          if (summaryCov > 0.5) { summaryStability = 'Highly Variable'; summaryStabilityColor = '#f44336'; }
+          else if (summaryCov > 0.2) { summaryStability = 'Moderately Variable'; summaryStabilityColor = '#ff9800'; }
+          db.close();
+          return {
+            sources,
+            analytics,
+            summary: {
+              avg: summaryAvg,
+              min: summaryMin,
+              max: summaryMax,
+              cov: summaryCov,
+              stability: summaryStability,
+              stabilityColor: summaryStabilityColor
+            },
+            recommendations: allRecommendations,
+            chartData,
+            empty: false
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      });
       const dbPath = path.join(__dirname, '../../assets/data.db');
       const db = new Database(dbPath);
       const stmt = db.prepare('DELETE FROM income_sources WHERE id = ?');

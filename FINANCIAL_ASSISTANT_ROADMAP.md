@@ -172,7 +172,7 @@ All features are organized into the following main pages and sub-pages for optim
 2. **Income**
   - Sources (add/edit/delete income, frequency, expected vs. actual, tax breakdown)
   - By Earner (multiple earners, contribution stats)
-  - Variable Income (analysis for freelance/side income)
+  - Variable Income (analysis for freelance/side income) [✅] **Completed: 2025-12-22**
   - Trends (income over time, charts)
   - Tax Estimator (tax bracket, net income, recommendations)
   - Retirement (contribution tracking, limits, history)
@@ -431,7 +431,6 @@ Transform from a simple budgeting tool into a comprehensive, intelligent financi
   - Individual variable income source cards with key metrics
   - Beautiful gradient summary banners and theme-aware design
   - Empty states with helpful guidance and info modal
-  - Responsive mobile-optimized layout
   - Backend endpoint with comprehensive analytics
   - Test data includes multi-year variable income history (i.e. 2023-2025)
   [ ] Income trend charts

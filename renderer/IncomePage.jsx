@@ -20,6 +20,14 @@ const defaultSource = {
 export default function IncomePage({ theme, isDarkMode }) {
   // Track which breakdowns are expanded
   const [expandedBreakdowns, setExpandedBreakdowns] = useState({});
+    // Variable income analysis state
+    const [variableIncome, setVariableIncome] = useState(null);
+
+    useEffect(() => {
+      window.electronAPI.invoke('get-variable-income-analysis').then((data) => {
+        setVariableIncome(data && !data.error ? data : null);
+      });
+    }, []);
 
   function toggleBreakdown(id) {
     setExpandedBreakdowns(prev => ({ ...prev, [id]: !prev[id] }));
@@ -37,7 +45,7 @@ export default function IncomePage({ theme, isDarkMode }) {
   const [incomeTx, setIncomeTx] = useState([]);
   // New: Earner statistics and tab state
   const [earnerStats, setEarnerStats] = useState(null);
-  const [tab, setTab] = useState('sources'); // 'sources' or 'earners'
+  const [tab, setTab] = useState('sources'); // 'sources', 'earners', 'variable'
 
   // Dummy functions for illustration; replace with your actual logic
   // Calculate per-paycheck and monthly equivalent for any source
@@ -169,16 +177,98 @@ export default function IncomePage({ theme, isDarkMode }) {
   }, []);
 
   return (
-    <>
-      <div style={{ background: theme.background, minHeight: '100vh', color: theme.text }}>
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '2.5rem' }}>
-          <div style={{ maxWidth: 900, width: '100%', background: theme.card, borderRadius: 18, boxShadow: `0 4px 24px ${theme.border}`, border: `2.5px solid ${theme.accent}33`, padding: '2rem 2.5rem', margin: '0 auto', transition: 'box-shadow 0.2s' }}>
-            <h2 style={{ color: theme.header, fontWeight: 900, fontSize: '2.1rem', marginBottom: '1.2rem', textAlign: 'center', letterSpacing: '0.01em', textShadow: `0 2px 12px ${theme.background}` }}>Income</h2>
-            {/* Tabs */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 24 }}>
-              <button onClick={() => setTab('sources')} style={{ background: tab === 'sources' ? theme.accent : theme.background, color: tab === 'sources' ? theme.card : theme.text, border: `1.5px solid ${theme.accent}`, borderRadius: 8, padding: '0.6rem 1.5rem', fontWeight: 700, fontSize: '1.08rem', cursor: 'pointer', boxShadow: tab === 'sources' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Source</button>
-              <button onClick={() => setTab('earners')} style={{ background: tab === 'earners' ? theme.accent : theme.background, color: tab === 'earners' ? theme.card : theme.text, border: `1.5px solid ${theme.accent}`, borderRadius: 8, padding: '0.6rem 1.5rem', fontWeight: 700, fontSize: '1.08rem', cursor: 'pointer', boxShadow: tab === 'earners' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Earner</button>
-            </div>
+            <>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
+                <button onClick={() => setTab('sources')} style={{ background: tab === 'sources' ? theme.accent : theme.background, color: tab === 'sources' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'sources' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Source</button>
+                <button onClick={() => setTab('earners')} style={{ background: tab === 'earners' ? theme.accent : theme.background, color: tab === 'earners' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'earners' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>By Earner</button>
+                <button onClick={() => setTab('variable')} style={{ background: tab === 'variable' ? theme.accent : theme.background, color: tab === 'variable' ? theme.card : theme.text, border: `2px solid ${theme.accent}`, borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: tab === 'variable' ? `0 2px 8px ${theme.border}` : 'none', transition: 'all 0.15s' }}>Variable Income</button>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <button
+                  onClick={() => openModal()}
+                  style={{ background: theme.accent, color: theme.card, border: 'none', borderRadius: 8, padding: '0.7rem 2rem', fontWeight: 700, fontSize: '1.12rem', cursor: 'pointer', boxShadow: `0 2px 8px ${theme.border}` }}
+                >
+                  Add Income Source
+                </button>
+              </div>
+            {/* Variable Income Sub-Tab */}
+            {tab === 'variable' && (
+              <div style={{ marginBottom: 32, background: `linear-gradient(135deg, ${theme.accent}22 0%, ${theme.card} 100%)`, borderRadius: 18, boxShadow: `0 2px 16px ${theme.border}`, border: `2px solid ${theme.accent}22`, padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+                <h3 style={{ color: theme.header, fontWeight: 900, fontSize: '1.5rem', marginBottom: 12 }}>Advanced Variable Income Analytics</h3>
+                {variableIncome && !variableIncome.empty ? (
+                  <>
+                    {/* Summary Banner */}
+                    <div style={{ width: '100%', background: `linear-gradient(90deg, ${variableIncome.summary.stabilityColor} 0%, ${theme.accent} 100%)`, borderRadius: 14, padding: '1.2rem 2rem', marginBottom: 18, color: theme.card, fontWeight: 700, fontSize: '1.15rem', boxShadow: `0 2px 8px ${theme.border}` }}>
+                      <span>Stability: <span style={{ color: variableIncome.summary.stabilityColor, background: theme.card, borderRadius: 8, padding: '0.2rem 0.7rem', fontWeight: 800 }}>{variableIncome.summary.stability}</span></span>
+                      &nbsp;|&nbsp; Avg: ${variableIncome.summary.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      &nbsp;|&nbsp; Min: ${variableIncome.summary.min.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      &nbsp;|&nbsp; Max: ${variableIncome.summary.max.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      &nbsp;|&nbsp; Coefficient of Variation: {(variableIncome.summary.cov * 100).toFixed(1)}%
+                    </div>
+                    {/* Source Cards */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'center', marginBottom: 18 }}>
+                      {variableIncome.analytics.map((a, idx) => (
+                        <div key={a.source.id || idx} style={{ minWidth: 260, maxWidth: 340, flex: '1 1 260px', background: theme.background, borderRadius: 14, boxShadow: `0 1px 8px ${theme.border}`, padding: '1.2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 8, border: `2px solid ${a.stabilityColor}` }}>
+                          <div style={{ fontWeight: 800, fontSize: '1.13rem', color: theme.header, marginBottom: 4 }}>{a.source.name}</div>
+                          <div style={{ fontSize: '0.99rem', color: theme.subtext }}>{a.source.earner} &middot; {a.source.frequency} &middot; {a.source.type}</div>
+                          <div style={{ margin: '10px 0 4px 0', width: '100%' }}>
+                            <div style={{ fontSize: '0.97rem', color: theme.text }}><b>Avg:</b> ${a.avg.toLocaleString(undefined, { maximumFractionDigits: 2 })} <b>Median:</b> ${a.median.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                            <div style={{ fontSize: '0.97rem', color: theme.text }}><b>Min:</b> ${a.min.toLocaleString(undefined, { maximumFractionDigits: 2 })} <b>Max:</b> ${a.max.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                            <div style={{ fontSize: '0.97rem', color: theme.text }}><b>Stability:</b> <span style={{ color: a.stabilityColor }}>{a.stability}</span> <b>CoV:</b> {(a.cov * 100).toFixed(1)}%</div>
+                            <div style={{ fontSize: '0.97rem', color: theme.text }}><b>Trend:</b> {a.trend}</div>
+                          </div>
+                          <div style={{ marginTop: 8, width: '100%' }}>
+                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Current Month: <span style={{ color: theme.success }}>${a.currentMonth.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Forecast (Next Month):</div>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                              <div style={{ background: theme.card, borderRadius: 8, padding: '0.5rem 1rem', color: theme.text, fontWeight: 700 }}>Conservative: ${a.forecast.conservative.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                              <div style={{ background: theme.card, borderRadius: 8, padding: '0.5rem 1rem', color: theme.text, fontWeight: 700 }}>Expected: ${a.forecast.expected.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                              <div style={{ background: theme.card, borderRadius: 8, padding: '0.5rem 1rem', color: theme.text, fontWeight: 700 }}>Optimistic: ${a.forecast.optimistic.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                            </div>
+                          </div>
+                          {/* Recommendations */}
+                          <div style={{ marginTop: 8, width: '100%' }}>
+                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Recommendations:</div>
+                            <ul style={{ color: theme.text, fontSize: '0.97rem', marginLeft: 18 }}>
+                              {a.recommendations.map((rec, i) => (
+                                <li key={i}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          {/* Monthly Stats Cards */}
+                          <div style={{ marginTop: 8, width: '100%' }}>
+                            <div style={{ fontWeight: 700, color: theme.header, marginBottom: 2 }}>Monthly Stats (Last 12 Months):</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {a.monthlyStats.map((m, idx) => (
+                                <div key={idx} style={{ background: theme.card, borderRadius: 8, boxShadow: `0 1px 4px ${theme.border}22`, padding: '0.7rem 1rem', fontSize: '0.98rem', color: theme.text, minWidth: 90, textAlign: 'center' }}>
+                                  <div style={{ fontWeight: 700, color: theme.info }}>{m.month}</div>
+                                  <div style={{ color: theme.success }}>${m.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Chart.js Bar Chart (12 months, average line overlay) */}
+                    <div style={{ width: '100%', marginTop: 18, background: theme.background, borderRadius: 14, boxShadow: `0 1px 8px ${theme.border}`, padding: '1.2rem 2rem' }}>
+                      <h4 style={{ color: theme.header, fontWeight: 800, fontSize: '1.15rem', marginBottom: 8 }}>12-Month Variable Income Chart</h4>
+                      {/* Chart.js integration placeholder: Replace with actual Chart.js Bar chart */}
+                      <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.subtext, fontSize: '1.1rem', background: theme.card, borderRadius: 12, boxShadow: `0 1px 4px ${theme.border}22` }}>
+                        {/* Chart.js Bar chart goes here. Data: variableIncome.chartData */}
+                        <span>Chart.js Bar Chart (12 months, average line overlay) will appear here.</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: theme.subtext, fontSize: '1.15rem', textAlign: 'center', marginTop: 32 }}>
+                    <b>No variable income sources or history found.</b>
+                    <br />
+                    <span style={{ color: theme.info }}>Add freelance, investment, or other income sources to see analytics.</span>
+                  </div>
+                )}
+              </div>
+            )}
             {/* Tab Content */}
             {tab === 'sources' && (
               <>
@@ -211,6 +301,51 @@ export default function IncomePage({ theme, isDarkMode }) {
                                 <div style={{ fontSize: '0.99rem', color: theme.subtext }}>{src.earner} &middot; {src.frequency.charAt(0).toUpperCase() + src.frequency.slice(1)}</div>
                               </div>
                             </div>
+                                        {/* Variable Income Analysis Section */}
+                                        <div style={{ marginBottom: 32, background: theme.background, borderRadius: 14, boxShadow: `0 1px 8px ${theme.border}`, padding: '1.2rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                                          <div style={{ fontWeight: 800, fontSize: '1.18rem', color: theme.header }}>Variable Income Analysis</div>
+                                          {variableIncome ? (
+                                            <>
+                                              <div style={{ fontSize: '1.05rem', color: theme.text }}>
+                                                <b>Volatility (Std Dev):</b> ${variableIncome.volatility?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                                &nbsp;|&nbsp;
+                                                <b>Projection (Avg Last 3 Months):</b> ${variableIncome.projection?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                              </div>
+                                              <div style={{ marginTop: 12, width: '100%' }}>
+                                                <div style={{ fontWeight: 700, color: theme.header, marginBottom: 4 }}>6-Month Trend</div>
+                                                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                                  {(Array.isArray(variableIncome?.trend) && variableIncome.trend.length > 0) ? (
+                                                    variableIncome.trend.map((m, idx) => (
+                                                      <div key={idx} style={{ background: theme.card, borderRadius: 8, boxShadow: `0 1px 4px ${theme.border}22`, padding: '0.7rem 1rem', fontSize: '0.98rem', color: theme.text, minWidth: 110, textAlign: 'center' }}>
+                                                        <div style={{ fontWeight: 700, color: theme.info }}>{m.month}</div>
+                                                        <div style={{ color: theme.success }}>${m.total.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                                                      </div>
+                                                    ))
+                                                  ) : (
+                                                    <span style={{ color: theme.subtext, fontSize: '0.97rem', padding: '0.5rem 0.7rem' }}>No trend data available.</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div style={{ marginTop: 12, width: '100%' }}>
+                                                <div style={{ fontWeight: 700, color: theme.header, marginBottom: 4 }}>Sources</div>
+                                                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                                                  {variableIncome.sources.map((src, idx) => (
+                                                    <div key={src.id || idx} style={{ background: theme.card, borderRadius: 8, boxShadow: `0 1px 4px ${theme.border}22`, padding: '0.7rem 1rem', fontSize: '0.98rem', color: theme.text, minWidth: 110, textAlign: 'center' }}>
+                                                      <div style={{ fontWeight: 700, color: theme.info }}>{src.name}</div>
+                                                      <div style={{ color: theme.subtext }}>{src.earner} &middot; {src.frequency}</div>
+                                                      <div style={{ color: theme.success }}>${Number(src.expected_amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                                                    </div>
+                                                  ))}
+                                                  {variableIncome.sources.length === 0 && (
+                                                    <span style={{ color: theme.subtext, fontSize: '0.97rem', padding: '0.5rem 0.7rem' }}>No variable income sources found.</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </>
+                                          ) : (
+                                            <div style={{ color: theme.subtext, fontSize: '1.05rem' }}>Loading variable income analysis...</div>
+                                          )}
+                                        </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
                               <span style={{ fontWeight: 700, color: theme.success, fontSize: '1.13rem' }}>Per Paycheck: ${perPaycheck.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                               <span style={{ fontWeight: 700, color: theme.info, fontSize: '1.13rem' }}>Monthly Equivalent: ${monthly.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
@@ -465,9 +600,7 @@ export default function IncomePage({ theme, isDarkMode }) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      </div>
+
     </>
   );
 }
